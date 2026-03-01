@@ -1,0 +1,380 @@
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { DatabaseMap, DatabaseEvent, DatabaseGuest, MapData } from '@/types/map';
+import type { CreateEventInput, PublicEvent } from '@/types/event';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+// Create client only if credentials are available
+let supabaseInstance: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseInstance) {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase credentials not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.');
+    }
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return supabaseInstance;
+}
+
+// Export for direct use when needed
+export const supabase = {
+  get client() {
+    return getSupabase();
+  }
+};
+
+// Map operations
+export async function getMaps(userId: string) {
+  const { data, error } = await getSupabase()
+    .from('maps')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return data as DatabaseMap[];
+}
+
+export async function getMap(id: string) {
+  const { data, error } = await getSupabase()
+    .from('maps')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseMap;
+}
+
+export async function createMap(map: Omit<DatabaseMap, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await getSupabase()
+    .from('maps')
+    .insert(map)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseMap;
+}
+
+export async function updateMap(id: string, updates: Partial<DatabaseMap>) {
+  const { data, error } = await getSupabase()
+    .from('maps')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseMap;
+}
+
+export async function deleteMap(id: string) {
+  const { error } = await getSupabase()
+    .from('maps')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// Event operations
+export async function getEvents(mapId: string) {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .select('*')
+    .eq('map_id', mapId)
+    .order('event_date', { ascending: true });
+
+  if (error) throw error;
+  return data as DatabaseEvent[];
+}
+
+export async function getEvent(id: string) {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseEvent;
+}
+
+export async function createEvent(event: Omit<DatabaseEvent, 'id' | 'created_at'>) {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .insert(event)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseEvent;
+}
+
+// Extended event type for Luma-seated events (includes all new fields)
+export interface ExtendedDatabaseEvent {
+  id: string;
+  map_id: string | null;
+  user_id: string;
+  name: string;
+  description: string | null;
+  start_date: string;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
+  location: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  cover_image_url: string | null;
+  event_type: 'ga' | 'seated';
+  ticket_tiers: any | null;
+  currency: string;
+  theme_color: string | null;
+  theme_font: string | null;
+  require_approval: boolean;
+  seat_status: Record<string, string>;
+  created_at: string;
+}
+
+export async function createExtendedEvent(input: CreateEventInput): Promise<ExtendedDatabaseEvent> {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .insert({
+      map_id: input.mapId || null,
+      user_id: input.userId,
+      name: input.name,
+      description: input.description || null,
+      start_date: input.startDate,
+      start_time: input.startTime || null,
+      end_date: input.endDate || null,
+      end_time: input.endTime || null,
+      location: input.location || null,
+      location_lat: input.locationLat || null,
+      location_lng: input.locationLng || null,
+      cover_image_url: input.coverImageUrl || null,
+      event_type: input.eventType,
+      ticket_tiers: input.ticketTiers || null,
+      currency: input.currency,
+      theme_color: input.themeColor || null,
+      theme_font: input.themeFont || null,
+      require_approval: input.requireApproval,
+      seat_status: {},
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as ExtendedDatabaseEvent;
+}
+
+export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    throw error;
+  }
+
+  const event = data as ExtendedDatabaseEvent;
+  return {
+    id: event.id,
+    name: event.name,
+    description: event.description,
+    startDate: event.start_date,
+    startTime: event.start_time,
+    endDate: event.end_date,
+    endTime: event.end_time,
+    location: event.location,
+    locationLat: event.location_lat,
+    locationLng: event.location_lng,
+    coverImageUrl: event.cover_image_url,
+    eventType: event.event_type,
+    ticketTiers: event.ticket_tiers,
+    currency: event.currency,
+    themeColor: event.theme_color,
+    themeFont: event.theme_font,
+    requireApproval: event.require_approval,
+    mapId: event.map_id,
+    userId: event.user_id,
+    createdAt: event.created_at,
+  };
+}
+
+export async function uploadCoverImage(base64Data: string, userId: string): Promise<string> {
+  // Extract the file extension and content type from the base64 string
+  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error('Invalid base64 image data');
+  }
+
+  const extension = matches[1];
+  const base64Content = matches[2];
+  const contentType = `image/${extension}`;
+
+  // Convert base64 to Uint8Array
+  const binaryString = atob(base64Content);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Generate a unique filename
+  const filename = `${userId}/${Date.now()}.${extension}`;
+
+  const { data, error } = await getSupabase()
+    .storage
+    .from('event-covers')
+    .upload(filename, bytes, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  // Get the public URL
+  const { data: { publicUrl } } = getSupabase()
+    .storage
+    .from('event-covers')
+    .getPublicUrl(data.path);
+
+  return publicUrl;
+}
+
+export async function updateEvent(id: string, updates: Partial<DatabaseEvent>) {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseEvent;
+}
+
+export async function deleteEvent(id: string) {
+  const { error } = await getSupabase()
+    .from('events')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export interface EventWithMap extends DatabaseEvent {
+  map_name: string;
+  total_seats: number;
+}
+
+// Helper function to count bookable items (seats, booths, tables) in map data
+function countBookableItems(mapData: MapData | null): number {
+  if (!mapData || !mapData.elements) return 0;
+
+  let count = 0;
+  for (const element of mapData.elements) {
+    if (element.type === 'seat') {
+      count += 1;
+    } else if (element.type === 'row' && 'seats' in element) {
+      count += element.seats?.length || 0;
+    } else if (element.type === 'table' && 'seats' in element) {
+      count += element.seats?.length || 0;
+    } else if (element.type === 'booth') {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export async function getUserEvents(userId: string): Promise<EventWithMap[]> {
+  const { data, error } = await getSupabase()
+    .from('events')
+    .select(`
+      *,
+      maps!inner(name, user_id, data)
+    `)
+    .eq('maps.user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  // Transform the data to include map_name and total_seats at the top level
+  return (data || []).map((event: any) => ({
+    ...event,
+    map_name: event.maps?.name || 'Unknown Map',
+    total_seats: countBookableItems(event.maps?.data),
+    maps: undefined, // Remove the nested maps object
+  }));
+}
+
+// Guest operations
+export async function getGuests(eventId: string) {
+  const { data, error } = await getSupabase()
+    .from('guests')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('importance_rank', { ascending: true });
+
+  if (error) throw error;
+  return data as DatabaseGuest[];
+}
+
+export async function createGuest(guest: Omit<DatabaseGuest, 'id' | 'created_at'>) {
+  const { data, error } = await getSupabase()
+    .from('guests')
+    .insert(guest)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseGuest;
+}
+
+export async function updateGuest(id: string, updates: Partial<DatabaseGuest>) {
+  const { data, error } = await getSupabase()
+    .from('guests')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as DatabaseGuest;
+}
+
+export async function deleteGuest(id: string) {
+  const { error } = await getSupabase()
+    .from('guests')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// Real-time subscriptions
+export function subscribeToEventSeats(
+  eventId: string,
+  callback: (payload: { seat_status: Record<string, string> }) => void
+) {
+  return getSupabase()
+    .channel(`event:${eventId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'events',
+        filter: `id=eq.${eventId}`,
+      },
+      (payload) => {
+        callback(payload.new as { seat_status: Record<string, string> });
+      }
+    )
+    .subscribe();
+}

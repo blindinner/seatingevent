@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seat Map Widget Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #0f0f23;
+      color: #e5e7eb;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .demo-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+    }
+
+    @media (max-width: 800px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .widget-container {
+      background: #1a1a2e;
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 500px;
+    }
+
+    #seat-map {
+      width: 100%;
+      height: 500px;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: #1e1e32;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9ca3af;
+      margin-bottom: 12px;
+    }
+
+    .config-item {
+      margin-bottom: 12px;
+    }
+
+    .config-item label {
+      display: block;
+      font-size: 13px;
+      color: #d1d5db;
+      margin-bottom: 4px;
+    }
+
+    .config-item input,
+    .config-item select {
+      width: 100%;
+      padding: 8px 12px;
+      background: #2d2d44;
+      border: 1px solid #3d3d5c;
+      border-radius: 6px;
+      color: #e5e7eb;
+      font-size: 14px;
+    }
+
+    .config-item input:focus,
+    .config-item select:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px 16px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #4f46e5;
+    }
+
+    .btn-secondary {
+      background: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+
+    .event-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      background: #0f0f1a;
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .event-log-entry {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #2d2d44;
+    }
+
+    .event-log-entry:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .event-log-time {
+      color: #6b7280;
+    }
+
+    .event-log-type {
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    .event-log-data {
+      color: #a5b4fc;
+      margin-top: 4px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .embed-code {
+      background: #0f0f1a;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      overflow-x: auto;
+      white-space: pre;
+      color: #a5b4fc;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h1>Seat Map Widget Demo</h1>
+    <p class="subtitle">Interactive demo of the embeddable seat selection widget</p>
+
+    <div class="demo-grid">
+      <div class="widget-container">
+        <div id="seat-map"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="card">
+          <h2>Configuration</h2>
+          <div class="config-item">
+            <label>Event ID</label>
+            <input type="text" id="event-id" placeholder="Enter event ID" value="">
+          </div>
+          <div class="config-item">
+            <label>Max Seats</label>
+            <input type="number" id="max-seats" value="10" min="1" max="50">
+          </div>
+          <div class="config-item">
+            <label>Theme</label>
+            <select id="theme">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <button class="btn" onclick="loadWidget()">Load Widget</button>
+        </div>
+
+        <div class="card">
+          <h2>Event Log</h2>
+          <div class="event-log" id="event-log">
+            <div class="event-log-entry">
+              <span class="event-log-time">Ready</span>
+              <div class="event-log-data">Widget initialized. Enter an event ID and click "Load Widget" to begin.</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="clearLog()" style="margin-top: 12px;">Clear Log</button>
+        </div>
+
+        <div class="card">
+          <h2>Embed Code</h2>
+          <div class="embed-code" id="embed-code">&lt;div id="seat-map"&gt;&lt;/div&gt;
+&lt;script src="/embed/seat-map-widget.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  SeatMapWidget.init({
+    container: '#seat-map',
+    eventId: 'YOUR_EVENT_ID',
+    maxSeats: 10,
+    theme: 'dark',
+    onSelectionChange: (seats) =&gt; {
+      console.log('Selected:', seats);
+    },
+    onCheckout: (seats, holdId) =&gt; {
+      window.location.href =
+        '/checkout?holdId=' + holdId;
+    }
+  });
+&lt;/script&gt;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SeatMapWidget } from './src/index.ts';
+
+    // Make it available globally
+    window.SeatMapWidget = SeatMapWidget;
+
+    // Logging utility
+    window.logEvent = function(type, data) {
+      const log = document.getElementById('event-log');
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'event-log-entry';
+      entry.innerHTML = `
+        <span class="event-log-time">${time}</span>
+        <span class="event-log-type">${type}</span>
+        <div class="event-log-data">${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</div>
+      `;
+      log.insertBefore(entry, log.firstChild);
+    };
+
+    window.clearLog = function() {
+      document.getElementById('event-log').innerHTML = '';
+    };
+
+    window.loadWidget = function() {
+      const eventId = document.getElementById('event-id').value;
+      const maxSeats = parseInt(document.getElementById('max-seats').value);
+      const theme = document.getElementById('theme').value;
+
+      if (!eventId) {
+        alert('Please enter an event ID');
+        return;
+      }
+
+      // Destroy existing widget
+      SeatMapWidget.destroy();
+
+      logEvent('INIT', { eventId, maxSeats, theme });
+
+      SeatMapWidget.init({
+        container: '#seat-map',
+        eventId: eventId,
+        apiBaseUrl: 'http://localhost:3000', // Main platform API (dev only)
+        maxSeats: maxSeats,
+        theme: theme,
+        onSelectionChange: (seats) => {
+          logEvent('SELECTION_CHANGE', seats);
+        },
+        onCheckout: (seats, holdId) => {
+          logEvent('CHECKOUT', { seats, holdId });
+          alert(`Checkout initiated!\n\nHold ID: ${holdId}\nSeats: ${seats.map(s => s.label).join(', ')}\n\nIn a real implementation, you would redirect to your checkout page.`);
+        },
+        onError: (error) => {
+          logEvent('ERROR', error.message);
+        },
+        onLoad: () => {
+          logEvent('LOADED', 'Widget loaded successfully');
+        }
+      });
+
+      // Update embed code
+      updateEmbedCode(eventId, maxSeats, theme);
+    };
+
+    window.updateEmbedCode = function(eventId, maxSeats, theme) {
+      const code = `<div id="seat-map"></div>
+<script src="/embed/seat-map-widget.js"><\/script>
+<script>
+  SeatMapWidget.init({
+    container: '#seat-map',
+    eventId: '${eventId}',
+    maxSeats: ${maxSeats},
+    theme: '${theme}',
+    onSelectionChange: (seats) => {
+      console.log('Selected:', seats);
+    },
+    onCheckout: (seats, holdId) => {
+      window.location.href =
+        '/checkout?holdId=' + holdId;
+    }
+  });
+<\/script>`;
+      document.getElementById('embed-code').textContent = code;
+    };
+  </script>
+</body>
+</html>
