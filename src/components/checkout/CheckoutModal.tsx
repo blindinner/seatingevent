@@ -506,7 +506,7 @@ export function CheckoutModal({
                   </svg>
                 </div>
 
-                <h3 className="text-[20px] font-bold text-white mb-2">You're going!</h3>
+                <h3 className="text-[20px] font-bold text-white mb-2">You&apos;re going!</h3>
                 <p className="text-[15px] text-white/60 mb-6">
                   Your tickets have been confirmed. Check your email for details.
                 </p>
