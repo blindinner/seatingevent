@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPaymentStatus, getAllPayConfig } from '@/lib/payments';
+import { getOrderByPaymentId } from '@/lib/orders';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,25 +10,19 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Verify payment status with AllPay
-    const config = getAllPayConfig();
-    const status = await getPaymentStatus(config, orderId);
+    // Get the order from our database
+    const order = await getOrderByPaymentId(orderId);
 
-    if (status.status === 'paid') {
-      // Get the order to find the event ID for redirect
-      const { getOrderByPaymentId } = await import('@/lib/orders');
-      const order = await getOrderByPaymentId(orderId);
-
-      if (order) {
-        // Redirect to event page with success message
-        return NextResponse.redirect(
-          new URL(`/event/${order.eventId}?payment=success&order=${order.id}`, request.url)
-        );
-      }
+    if (order) {
+      // Redirect to the order confirmation page
+      // This page will poll for status updates if payment is still processing
+      return NextResponse.redirect(
+        new URL(`/order/${order.id}`, request.url)
+      );
     }
 
-    // Payment not completed or order not found
-    return NextResponse.redirect(new URL('/?payment=pending', request.url));
+    // Order not found - redirect to home with error
+    return NextResponse.redirect(new URL('/?error=order_not_found', request.url));
   } catch (error) {
     console.error('Payment success redirect error:', error);
     return NextResponse.redirect(new URL('/?error=payment_verification', request.url));
