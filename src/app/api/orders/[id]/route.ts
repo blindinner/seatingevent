@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrder } from '@/lib/orders';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(
@@ -9,12 +8,33 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Get the order
-    const order = await getOrder(id);
+    // Query directly to debug
+    const { data: rawData, error: rawError } = await supabaseAdmin.client
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    console.log('Raw DB response:', JSON.stringify({ rawData, rawError }, null, 2));
+
+    if (rawError || !rawData) {
+      return NextResponse.json({
+        error: 'Order not found',
+        debug: { rawError, hasData: !!rawData }
+      }, { status: 404 });
     }
+
+    const order = {
+      id: rawData.id,
+      eventId: rawData.event_id,
+      customerName: rawData.customer_name,
+      customerEmail: rawData.customer_email,
+      totalAmount: rawData.amount_paid,
+      currency: rawData.currency,
+      status: rawData.payment_status,
+      ticketCode: rawData.ticket_code,
+      metadata: rawData.metadata,
+    };
 
     // Get event details
     const { data: event } = await supabaseAdmin.client
@@ -40,6 +60,11 @@ export async function GET(
       currency: order.currency,
       status: order.status,
       ticketCode: order.ticketCode,
+      // Debug info
+      _debug: {
+        rawPaymentStatus: rawData.payment_status,
+        rawTicketCode: rawData.ticket_code,
+      }
     });
   } catch (error) {
     console.error('Error fetching order:', error);
