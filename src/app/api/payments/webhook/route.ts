@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       order_id: payload.order_id,
       status: payload.status,
       amount: payload.amount,
+      transaction_uid: payload.transaction_uid,
       card_brand: payload.card_brand,
       card_mask: payload.card_mask,
       receipt: payload.receipt,
@@ -46,13 +47,13 @@ export async function POST(request: NextRequest) {
     if (isPaid) {
       // Payment successful
       console.log('Payment successful for order:', paymentOrderId);
+      console.log('AllPay transaction_uid:', payload.transaction_uid);
 
-      // Update order status with available AllPay data
-      // Note: AllPay doesn't provide a transaction_uid, so we store card info for reference
+      // Update order status with AllPay transaction data
       const order = await updateOrderByPaymentId(paymentOrderId, {
         status: 'paid',
-        // Store receipt URL if available (enable Receipts module in AllPay dashboard)
-        transactionId: payload.receipt || `${payload.card_brand}_${payload.card_mask}`,
+        // Store AllPay transaction UID as the primary payment identifier
+        transactionId: payload.transaction_uid || payload.receipt || `${payload.card_brand}_${payload.card_mask}`,
       });
 
       // Reserve the seats in the event
