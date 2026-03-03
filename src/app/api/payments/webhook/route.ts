@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyWebhookSignature, type WebhookPayload } from '@/lib/payments';
 import { updateOrderByPaymentId, getOrderByPaymentId } from '@/lib/orders';
 import { reserveSeatsForOrder, releaseSeats } from '@/lib/seats';
@@ -65,6 +66,10 @@ export async function POST(request: NextRequest) {
       if (order && eventId && seatIds.length > 0) {
         await reserveSeatsForOrder(eventId, seatIds, order.id);
         console.log('Seats reserved for order:', order.id);
+
+        // Invalidate the event page cache so seat status is fresh
+        revalidatePath(`/event/${eventId}`);
+        console.log('Cache invalidated for event:', eventId);
       }
 
       // Send confirmation email with ticket

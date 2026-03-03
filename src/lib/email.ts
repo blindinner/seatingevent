@@ -45,6 +45,10 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
   const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
   const fromName = process.env.EMAIL_FROM_NAME || 'Luma Seated';
 
+  // Build verification URL for QR code
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seatingevent-j3ip.vercel.app';
+  const verifyUrl = `${baseUrl}/verify/${data.ticketCode}`;
+
   try {
     const { error } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
@@ -114,9 +118,9 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
                         <p style="margin: 0 0 16px; color: rgba(255,255,255,0.6); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
                           Your Ticket
                         </p>
-                        <!-- QR Code -->
+                        <!-- QR Code - links to verification page -->
                         <img
-                          src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=18181b&color=ffffff&data=${encodeURIComponent(data.ticketCode)}"
+                          src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=18181b&color=ffffff&data=${encodeURIComponent(verifyUrl)}"
                           alt="Ticket QR Code"
                           width="180"
                           height="180"
@@ -127,7 +131,7 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
                           ${data.ticketCode}
                         </p>
                         <p style="margin: 12px 0 0; color: rgba(255,255,255,0.4); font-size: 12px;">
-                          Scan QR or show code at entrance
+                          Scan QR code at entrance for check-in
                         </p>
                       </div>
                     </td>

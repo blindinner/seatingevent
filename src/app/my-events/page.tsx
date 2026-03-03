@@ -8,6 +8,54 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getSupabaseClient } from '@/lib/auth';
 import { formatCurrency } from '@/lib/currency';
 
+interface DeleteModalProps {
+  isOpen: boolean;
+  eventName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}
+
+function DeleteModal({ isOpen, eventName, onConfirm, onCancel, isDeleting }: DeleteModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-md w-full">
+        <h3 className="text-xl font-semibold text-white mb-2">Delete Event</h3>
+        <p className="text-white/60 mb-6">
+          Are you sure you want to delete <span className="text-white font-medium">{eventName}</span>?
+          This will also delete all bookings associated with this event. This action cannot be undone.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="flex-1 py-2.5 px-4 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isDeleting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete Event'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface UserEvent {
   id: string;
   name: string;
@@ -33,6 +81,11 @@ export default function MyEventsPage() {
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; event: UserEvent | null }>({
+    isOpen: false,
+    event: null,
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -113,6 +166,44 @@ export default function MyEventsPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate < today;
+  };
+
+  // Handle delete event
+  const handleDeleteClick = (e: React.MouseEvent, event: UserEvent) => {
+    e.preventDefault(); // Prevent navigation to event page
+    e.stopPropagation();
+    setDeleteModal({ isOpen: true, event });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.event) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/events/${deleteModal.event.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete event');
+      }
+
+      // Remove the event from the list
+      setEvents(events.filter(e => e.id !== deleteModal.event!.id));
+      setDeleteModal({ isOpen: false, event: null });
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete event');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setDeleteModal({ isOpen: false, event: null });
+    }
   };
 
   if (authLoading || loading) {
@@ -215,8 +306,8 @@ export default function MyEventsPage() {
                       </div>
                     )}
 
-                    {/* Status Badge */}
-                    <div className="absolute top-3 right-3">
+                    {/* Status Badge & Delete Button */}
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
                       {past ? (
                         <span className="px-2.5 py-1 text-xs font-medium bg-white/10 backdrop-blur-sm text-white/70 rounded-full">
                           Past
@@ -226,6 +317,15 @@ export default function MyEventsPage() {
                           Active
                         </span>
                       )}
+                      <button
+                        onClick={(e) => handleDeleteClick(e, event)}
+                        className="p-1.5 bg-black/50 backdrop-blur-sm text-white/70 hover:text-red-400 hover:bg-red-500/20 rounded-full transition-colors"
+                        title="Delete event"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
 
                     {/* Event Type Badge */}
@@ -273,6 +373,15 @@ export default function MyEventsPage() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        eventName={deleteModal.event?.name || ''}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
