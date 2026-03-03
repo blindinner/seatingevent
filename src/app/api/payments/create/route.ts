@@ -136,11 +136,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract AllPay payment_id from the payment URL
+    let allpayPaymentId: string | null = null;
+    if (paymentResult.paymentUrl) {
+      const urlParams = new URL(paymentResult.paymentUrl).searchParams;
+      allpayPaymentId = urlParams.get('payment_id');
+      if (allpayPaymentId) {
+        // Store the AllPay payment ID
+        await updateOrder(order.id, { transactionId: `allpay_${allpayPaymentId}` });
+        console.log('AllPay payment_id:', allpayPaymentId);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       orderId: order.id,
       paymentOrderId,
       paymentUrl: paymentResult.paymentUrl,
+      allpayPaymentId,
     });
   } catch (error) {
     console.error('Payment creation error:', error);

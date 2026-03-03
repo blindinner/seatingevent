@@ -26,11 +26,11 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
 
   const seatList = data.seats.map(s => `${s.label} (${s.category})`).join(', ');
 
-  // Format amount for display
+  // Format amount for display (amount is already in dollars/main currency unit)
   const formattedAmount = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: data.currency,
-  }).format(data.totalAmount / 100);
+  }).format(data.totalAmount);
 
   // Format date
   const eventDate = new Date(data.eventDate);
@@ -41,8 +41,9 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
     day: 'numeric',
   });
 
-  const fromEmail = process.env.EMAIL_FROM || 'tickets@yourdomain.com';
-  const fromName = process.env.EMAIL_FROM_NAME || 'Tickets';
+  // Use Resend's test email as default (works without domain verification)
+  const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+  const fromName = process.env.EMAIL_FROM_NAME || 'Luma Seated';
 
   try {
     const { error } = await resend.emails.send({

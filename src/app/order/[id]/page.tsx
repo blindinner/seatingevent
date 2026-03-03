@@ -75,7 +75,7 @@ export default function OrderConfirmationPage() {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-    }).format(amount / 100);
+    }).format(amount);
   };
 
   if (loading) {

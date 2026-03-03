@@ -76,7 +76,15 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const customerName = `${input.customerFirstName} ${input.customerLastName}`;
   const seatIds = input.seats.map(s => s.seatId);
 
-  // totalAmount is already in cents (smallest currency unit)
+  // Convert from cents to dollars for storage
+  const amountInDollars = input.totalAmount / 100;
+
+  // Also convert seat prices to dollars for consistency
+  const seatsWithDollarPrices = input.seats.map(seat => ({
+    ...seat,
+    price: seat.price / 100,
+  }));
+
   const { data, error } = await supabaseAdmin.client
     .from('bookings')
     .insert({
@@ -86,11 +94,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       customer_phone: input.customerPhone,
       seat_ids: seatIds,
       seat_count: seatIds.length,
-      amount_paid: input.totalAmount,
+      amount_paid: amountInDollars,
       currency: input.currency,
       payment_status: input.status,
       metadata: {
-        seats: input.seats, // Store full seat details
+        seats: seatsWithDollarPrices, // Store seat details with prices in dollars
       },
     })
     .select()
