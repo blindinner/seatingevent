@@ -38,7 +38,12 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ seatStatus });
+    // Seat status changes via webhooks, must not be cached
+    return NextResponse.json({ seatStatus }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    });
   } catch (error) {
     console.error('Fetch seat status error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
