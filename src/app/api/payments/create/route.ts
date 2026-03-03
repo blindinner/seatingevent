@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate total (selectedSeats prices should be in display currency, e.g., ILS)
+    // Calculate total - selectedSeats prices are in cents (smallest currency unit)
     const totalAmount = selectedSeats.reduce(
       (sum: number, seat: { price: number }) => sum + seat.price,
       0

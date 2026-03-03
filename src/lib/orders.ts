@@ -36,7 +36,7 @@ export interface CreateOrderInput {
   customerEmail: string;
   customerPhone: string;
   seats: OrderSeat[];
-  totalAmount: number; // in the display currency (e.g., ILS)
+  totalAmount: number; // in cents (smallest currency unit)
   currency: string;
   status: 'pending';
 }
@@ -76,9 +76,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const customerName = `${input.customerFirstName} ${input.customerLastName}`;
   const seatIds = input.seats.map(s => s.seatId);
 
-  // Convert to cents for storage
-  const amountInCents = Math.round(input.totalAmount * 100);
-
+  // totalAmount is already in cents (smallest currency unit)
   const { data, error } = await supabaseAdmin.client
     .from('bookings')
     .insert({
@@ -88,7 +86,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       customer_phone: input.customerPhone,
       seat_ids: seatIds,
       seat_count: seatIds.length,
-      amount_paid: amountInCents,
+      amount_paid: input.totalAmount,
       currency: input.currency,
       payment_status: input.status,
       metadata: {
