@@ -254,7 +254,7 @@ export default function MyEventsPage() {
           </div>
         )}
 
-        {/* Events Grid */}
+        {/* Events List */}
         {events.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-6">
@@ -275,99 +275,148 @@ export default function MyEventsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {events.map((event) => {
               const past = isPastEvent(event.start_date);
 
               return (
-                <Link
+                <div
                   key={event.id}
-                  href={`/event/${event.id}`}
-                  className={`group block rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-all hover:bg-white/[0.05] ${
+                  className={`rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-all ${
                     past ? 'opacity-60' : ''
                   }`}
                 >
-                  {/* Cover Image */}
-                  <div className="aspect-[16/9] relative overflow-hidden bg-white/[0.02]">
-                    {event.cover_image_url ? (
-                      <img
-                        src={event.cover_image_url}
-                        alt={event.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div
-                        className="w-full h-full flex items-center justify-center"
-                        style={{ backgroundColor: event.theme_color || '#1c1917' }}
-                      >
-                        <svg className="w-12 h-12 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* Status Badge & Delete Button */}
-                    <div className="absolute top-3 right-3 flex items-center gap-2">
-                      {past ? (
-                        <span className="px-2.5 py-1 text-xs font-medium bg-white/10 backdrop-blur-sm text-white/70 rounded-full">
-                          Past
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 text-xs font-medium bg-green-500/20 backdrop-blur-sm text-green-400 rounded-full">
-                          Active
-                        </span>
-                      )}
-                      <button
-                        onClick={(e) => handleDeleteClick(e, event)}
-                        className="p-1.5 bg-black/50 backdrop-blur-sm text-white/70 hover:text-red-400 hover:bg-red-500/20 rounded-full transition-colors"
-                        title="Delete event"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                  <div className="flex flex-col md:flex-row">
+                    {/* Cover Image */}
+                    <div className="md:w-48 lg:w-56 flex-shrink-0">
+                      <Link href={`/event/${event.id}`} className="block aspect-[16/9] md:aspect-square relative overflow-hidden bg-white/[0.02]">
+                        {event.cover_image_url ? (
+                          <img
+                            src={event.cover_image_url}
+                            alt={event.name}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full flex items-center justify-center"
+                            style={{ backgroundColor: event.theme_color || '#1c1917' }}
+                          >
+                            <svg className="w-10 h-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                        {/* Status Badge */}
+                        <div className="absolute top-2 left-2">
+                          {past ? (
+                            <span className="px-2 py-0.5 text-[10px] font-medium bg-white/10 backdrop-blur-sm text-white/70 rounded-full">
+                              Past
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-medium bg-green-500/20 backdrop-blur-sm text-green-400 rounded-full">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </Link>
                     </div>
 
-                    {/* Event Type Badge */}
-                    <div className="absolute top-3 left-3">
-                      <span className="px-2.5 py-1 text-xs font-medium bg-black/50 backdrop-blur-sm text-white/80 rounded-full capitalize">
-                        {event.event_type === 'ga' ? 'General Admission' : 'Seated'}
-                      </span>
+                    {/* Event Details */}
+                    <div className="flex-1 p-5 flex flex-col">
+                      {/* Top: Name, Date, Type */}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <Link href={`/event/${event.id}`} className="group">
+                            <h3 className="text-lg font-semibold text-white group-hover:text-white/80 transition-colors line-clamp-1">
+                              {event.name}
+                            </h3>
+                          </Link>
+                          <span className="px-2 py-0.5 text-[10px] font-medium bg-white/[0.06] text-white/60 rounded-full capitalize flex-shrink-0">
+                            {event.event_type === 'ga' ? 'GA' : 'Seated'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/50 mb-3">
+                          <span className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                            </svg>
+                            {formatDate(event.start_date)}
+                            {event.start_time && ` · ${formatTime(event.start_time)}`}
+                          </span>
+                          {event.location && (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                              </svg>
+                              <span className="line-clamp-1">{event.location.split(',')[0]}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Quick Stats Preview */}
+                        <div className="flex items-center gap-6 mb-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-white">{event.total_bookings || 0}</div>
+                              <div className="text-[11px] text-white/40">Tickets Sold</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-white">{formatCurrency((event.total_revenue || 0) * 100, event.currency)}</div>
+                              <div className="text-[11px] text-white/40">Revenue</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 pt-4 border-t border-white/[0.06]">
+                        <Link
+                          href={`/event/${event.id}/dashboard`}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-white/[0.08] hover:bg-white/[0.15] rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                          </svg>
+                          Dashboard
+                        </Link>
+                        <Link
+                          href={`/event/${event.id}`}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          View Event
+                        </Link>
+                        <div className="flex-1" />
+                        <button
+                          onClick={(e) => handleDeleteClick(e, event)}
+                          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Event Info */}
-                  <div className="p-5">
-                    <h3 className="text-lg font-semibold text-white mb-1 line-clamp-1 group-hover:text-white/90">
-                      {event.name}
-                    </h3>
-
-                    <p className="text-sm text-white/50 mb-4">
-                      {formatDate(event.start_date)}
-                      {event.start_time && ` · ${formatTime(event.start_time)}`}
-                    </p>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 pt-4 border-t border-white/[0.06]">
-                      <div className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                        </svg>
-                        <span className="text-sm text-white/60">
-                          {event.total_bookings} sold
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-sm text-white/60">
-                          {formatCurrency(event.total_revenue || 0, event.currency)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                </div>
               );
             })}
           </div>

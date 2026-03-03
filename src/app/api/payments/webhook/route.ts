@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { verifyWebhookSignature, type WebhookPayload } from '@/lib/payments';
 import { updateOrderByPaymentId, getOrderByPaymentId } from '@/lib/orders';
 import { reserveSeatsForOrder, releaseSeats } from '@/lib/seats';
-import { sendTicketEmail } from '@/lib/email';
+import { sendTicketEmail, sendOwnerNotificationEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
@@ -78,10 +78,10 @@ export async function POST(request: NextRequest) {
 
       if (order && customerEmail && eventId) {
         try {
-          // Fetch event details
+          // Fetch event details with owner info and email settings
           const { data: event } = await supabaseAdmin.client
             .from('events')
-            .select('name, start_date, start_time, location')
+            .select('name, start_date, start_time, location, user_id, email_settings')
             .eq('id', eventId)
             .single();
 
@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
               ticketCode: order.ticketCode || 'N/A',
               totalAmount: order.totalAmount,
               currency: order.currency,
+              emailSettings: event.email_settings || undefined,
             });
 
             if (emailResult.success) {
@@ -112,6 +113,50 @@ export async function POST(request: NextRequest) {
               console.log('Ticket email sent to:', customerEmail);
             } else {
               console.error('Failed to send ticket email:', emailResult.error);
+            }
+
+            // Send notification to event owner
+            if (event.user_id) {
+              try {
+                // Get owner email
+                const { data: ownerProfile } = await supabaseAdmin.client
+                  .from('profiles')
+                  .select('email, full_name')
+                  .eq('id', event.user_id)
+                  .single();
+
+                // Fallback: try auth.users if profiles doesn't have email
+                let ownerEmail = ownerProfile?.email;
+                if (!ownerEmail) {
+                  const { data: authUser } = await supabaseAdmin.client.auth.admin.getUserById(event.user_id);
+                  ownerEmail = authUser?.user?.email;
+                }
+
+                if (ownerEmail) {
+                  // Get order count for this event
+                  const { count } = await supabaseAdmin.client
+                    .from('bookings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('event_id', eventId)
+                    .eq('payment_status', 'paid');
+
+                  await sendOwnerNotificationEmail({
+                    to: ownerEmail,
+                    ownerName: ownerProfile?.full_name || undefined,
+                    eventName: event.name,
+                    customerName: payload.client_name || order.customerName || 'Guest',
+                    customerEmail: customerEmail,
+                    seats: seatDetails,
+                    totalAmount: order.totalAmount,
+                    currency: order.currency,
+                    ticketCode: order.ticketCode || 'N/A',
+                    orderCount: count || 1,
+                  });
+                }
+              } catch (ownerEmailError) {
+                console.error('Error sending owner notification:', ownerEmailError);
+                // Don't fail the webhook if owner email fails
+              }
             }
           }
         } catch (emailError) {

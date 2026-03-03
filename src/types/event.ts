@@ -6,6 +6,13 @@ export interface TicketTier {
   description?: string;
 }
 
+export interface EmailSettings {
+  subject?: string;        // Default: "Your tickets for {{eventName}}"
+  greeting?: string;       // Default: "You're going!"
+  bodyText?: string;       // Default: "Your tickets are confirmed"
+  footerText?: string;     // Default: "Questions? Reply to this email or contact the event organizer."
+}
+
 export type EventType = 'ga' | 'seated';
 
 export interface CreateEventInput {
@@ -51,4 +58,5 @@ export interface PublicEvent {
   userId: string;
   createdAt: string;
   seatStatus: Record<string, string>; // seatId -> status (e.g., "sold:orderId")
+  emailSettings?: EmailSettings;
 }

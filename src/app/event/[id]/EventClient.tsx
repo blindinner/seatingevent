@@ -10,6 +10,7 @@ import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
 import { CheckoutModal } from '@/components/checkout/CheckoutModal';
 import { subscribeToEventSeats } from '@/lib/supabase';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface EventClientProps {
   event: PublicEvent;
@@ -20,6 +21,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const { selectedSeats, getTotalPrice, clearSelection, deselectSeat } = useSeatSelectionStore();
+  const { user } = useAuth();
+
+  // Check if current user is the event owner
+  const isOwner = user?.id === event.userId;
 
   // Live seat status - fetched client-side for real-time accuracy
   const [liveSeatStatus, setLiveSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
@@ -134,20 +139,34 @@ export function EventClient({ event, mapData }: EventClientProps) {
             <div className="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform bg-white" />
             <span className="text-[16px] font-medium text-white/90">seated</span>
           </Link>
-          {/* Show selection summary in nav when seats selected */}
-          {selectedSeats.length > 0 && (
-            <div className="flex items-center gap-4">
-              <span className="hidden sm:inline text-[14px] text-white/60">
-                {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} · {formatCurrency(getTotalPrice(), event.currency)}
-              </span>
-              <button
-                onClick={handleGetTickets}
-                className="h-10 px-6 text-[14px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
+          <div className="flex items-center gap-4">
+            {/* Owner Dashboard Link */}
+            {isOwner && (
+              <Link
+                href={`/event/${event.id}/dashboard`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-white/70 hover:text-white bg-white/[0.08] hover:bg-white/[0.12] rounded-lg transition-colors"
               >
-                Get Tickets
-              </button>
-            </div>
-          )}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+                Dashboard
+              </Link>
+            )}
+            {/* Show selection summary in nav when seats selected */}
+            {selectedSeats.length > 0 && (
+              <>
+                <span className="hidden sm:inline text-[14px] text-white/60">
+                  {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} · {formatCurrency(getTotalPrice(), event.currency)}
+                </span>
+                <button
+                  onClick={handleGetTickets}
+                  className="h-10 px-6 text-[14px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
+                >
+                  Get Tickets
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
