@@ -8,20 +8,14 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Query directly to debug
     const { data: rawData, error: rawError } = await supabaseAdmin.client
       .from('bookings')
       .select('*')
       .eq('id', id)
       .single();
 
-    console.log('Raw DB response:', JSON.stringify({ rawData, rawError }, null, 2));
-
     if (rawError || !rawData) {
-      return NextResponse.json({
-        error: 'Order not found',
-        debug: { rawError, hasData: !!rawData }
-      }, { status: 404 });
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
     const order = {
@@ -46,6 +40,7 @@ export async function GET(
     // Format the response
     const seats = (order.metadata?.seats as Array<{ label: string; category: string; price: number }>) || [];
 
+    // Order status changes via webhook, so must not be cached
     return NextResponse.json({
       id: order.id,
       eventId: order.eventId,
@@ -60,11 +55,10 @@ export async function GET(
       currency: order.currency,
       status: order.status,
       ticketCode: order.ticketCode,
-      // Debug info
-      _debug: {
-        rawPaymentStatus: rawData.payment_status,
-        rawTicketCode: rawData.ticket_code,
-      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
     });
   } catch (error) {
     console.error('Error fetching order:', error);
