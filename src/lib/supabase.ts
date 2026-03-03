@@ -171,7 +171,10 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
 }
 
 export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
-  const { data, error } = await getSupabase()
+  // Use admin client to bypass RLS and ensure seat_status is returned
+  const { supabaseAdmin } = await import('./supabase-admin');
+
+  const { data, error } = await supabaseAdmin.client
     .from('events')
     .select('*')
     .eq('id', id)
