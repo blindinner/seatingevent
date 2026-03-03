@@ -214,8 +214,9 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
   const handleSeatClick = useCallback((seat: SeatElement, parentCategory?: string) => {
     // Check if seat is unavailable (from map data or live status)
     const liveStatus = seatStatus[seat.id];
-    const isSold = liveStatus?.startsWith('sold:');
-    const isLocked = liveStatus?.startsWith('locked:');
+    // Handle both full format (sold:orderId) and simplified format (sold)
+    const isSold = liveStatus === 'sold' || liveStatus?.startsWith('sold:');
+    const isLocked = liveStatus === 'locked' || liveStatus?.startsWith('locked:');
     if (seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved' || isSold || isLocked) {
       return; // Can't select unavailable seats
     }
@@ -251,8 +252,9 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     const isSelected = isSeatSelected(seat.id);
     // Check live seat status from database
     const liveStatus = seatStatus[seat.id];
-    const isSold = liveStatus?.startsWith('sold:');
-    const isLocked = liveStatus?.startsWith('locked:');
+    // Handle both full format (sold:orderId) and simplified format (sold)
+    const isSold = liveStatus === 'sold' || liveStatus?.startsWith('sold:');
+    const isLocked = liveStatus === 'locked' || liveStatus?.startsWith('locked:');
     const isUnavailable = seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved' || isSold || isLocked;
 
     let fillColor = getCategoryColor(categoryId);

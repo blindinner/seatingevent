@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { PublicEvent } from '@/types/event';
 import type { MapData } from '@/types/map';
@@ -9,6 +9,7 @@ import { TicketSelector } from '@/components/event/TicketSelector';
 import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
 import { CheckoutModal } from '@/components/checkout/CheckoutModal';
+import { subscribeToEventSeats } from '@/lib/supabase';
 
 interface EventClientProps {
   event: PublicEvent;
@@ -18,7 +19,65 @@ interface EventClientProps {
 export function EventClient({ event, mapData }: EventClientProps) {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const { selectedSeats, getTotalPrice, clearSelection } = useSeatSelectionStore();
+  const { selectedSeats, getTotalPrice, clearSelection, deselectSeat } = useSeatSelectionStore();
+
+  // Live seat status - fetched client-side for real-time accuracy
+  const [liveSeatStatus, setLiveSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
+
+  // Fetch live seat status on mount and subscribe to real-time updates
+  useEffect(() => {
+    // Fetch current seat status
+    async function fetchSeatStatus() {
+      try {
+        const res = await fetch(`/api/events/${event.id}/seats`);
+        if (res.ok) {
+          const data = await res.json();
+          setLiveSeatStatus(data.seatStatus || {});
+        }
+      } catch (error) {
+        console.error('Failed to fetch seat status:', error);
+      }
+    }
+
+    fetchSeatStatus();
+
+    // Subscribe to real-time updates
+    const channel = subscribeToEventSeats(event.id, (payload) => {
+      if (payload.seat_status) {
+        // Process the raw seat status to filter expired locks
+        const rawStatus = payload.seat_status;
+        const now = Date.now();
+        const processed: Record<string, string> = {};
+
+        for (const [seatId, status] of Object.entries(rawStatus)) {
+          if (typeof status === 'string') {
+            if (status.startsWith('sold:')) {
+              processed[seatId] = 'sold';
+            } else if (status.startsWith('locked:')) {
+              const parts = status.split(':');
+              const expiresAt = parseInt(parts[2] || '0');
+              if (expiresAt > now) {
+                processed[seatId] = 'locked';
+              }
+            }
+          }
+        }
+
+        setLiveSeatStatus(processed);
+
+        // Deselect any seats that were just sold by someone else
+        for (const [seatId, status] of Object.entries(processed)) {
+          if (status === 'sold') {
+            deselectSeat(seatId);
+          }
+        }
+      }
+    });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [event.id, deselectSeat]);
 
   // Parse date for display
   const parseDateInfo = (dateStr: string) => {
@@ -231,7 +290,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   backgroundColor={themeColor}
                   compact={true}
                   height="h-[420px]"
-                  seatStatus={event.seatStatus}
+                  seatStatus={liveSeatStatus}
                 />
               </div>
             )}
