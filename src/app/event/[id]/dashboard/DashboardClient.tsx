@@ -7,6 +7,7 @@ import { Order } from '@/lib/orders';
 import { MapData } from '@/types/map';
 import { formatCurrency, fromSmallestUnit } from '@/lib/currency';
 import { MiniSeatMap } from '@/components/event/MiniSeatMap';
+import { getSupabaseClient } from '@/lib/auth';
 
 interface DashboardClientProps {
   event: PublicEvent;
@@ -40,8 +41,15 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
     setRefundError(null);
 
     try {
+      // Get the access token from Supabase
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
       const res = await fetch(`/api/orders/${orderId}/refund`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
       });
 
       if (!res.ok) {
