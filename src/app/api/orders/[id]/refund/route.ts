@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAllPayConfig, processRefund } from '@/lib/payments';
 
@@ -90,19 +91,61 @@ export async function POST(
 
     // Release the seats
     const seatIds = order.seat_ids || [];
+    const eventId = order.event_id;
+
+    console.log('Refund: Processing seat release', {
+      orderId,
+      eventId,
+      seatIds,
+    });
+
     if (seatIds.length > 0) {
-      const currentSeatStatus = order.events.seat_status || {};
+      // Fetch FRESH seat_status to avoid race conditions
+      // (the one from the order JOIN might be stale)
+      const { data: freshEvent, error: freshError } = await supabaseAdmin.client
+        .from('events')
+        .select('seat_status')
+        .eq('id', eventId)
+        .single();
+
+      if (freshError) {
+        console.error('Refund: Failed to fetch fresh seat_status', freshError);
+        // Fall back to the one from the order
+      }
+
+      const currentSeatStatus = (freshEvent?.seat_status || order.events.seat_status || {}) as Record<string, string>;
       const newSeatStatus = { ...currentSeatStatus };
+
+      console.log('Refund: Current seat_status keys', Object.keys(currentSeatStatus));
 
       // Remove sold status for refunded seats
       for (const seatId of seatIds) {
-        delete newSeatStatus[seatId];
+        if (newSeatStatus[seatId]) {
+          console.log(`Refund: Removing seat ${seatId} with status ${newSeatStatus[seatId]}`);
+          delete newSeatStatus[seatId];
+        } else {
+          console.log(`Refund: Seat ${seatId} not found in seat_status`);
+        }
       }
 
-      await supabaseAdmin.client
+      console.log('Refund: New seat_status keys', Object.keys(newSeatStatus));
+
+      const { error: updateError } = await supabaseAdmin.client
         .from('events')
         .update({ seat_status: newSeatStatus })
-        .eq('id', order.event_id);
+        .eq('id', eventId);
+
+      if (updateError) {
+        console.error('Refund: Failed to update seat_status', updateError);
+      } else {
+        console.log('Refund: Successfully updated seat_status');
+      }
+
+      // Invalidate caches so seat status is fresh
+      revalidatePath(`/event/${eventId}`);
+      revalidatePath(`/event/${eventId}/dashboard`);
+      // Also revalidate API routes (though API routes with no-store should not be cached)
+      revalidatePath(`/api/events/${eventId}/seats`);
     }
 
     return NextResponse.json({ success: true });

@@ -34,14 +34,41 @@ export function EventClient({ event, mapData }: EventClientProps) {
     // Fetch current seat status
     async function fetchSeatStatus() {
       try {
-        const res = await fetch(`/api/events/${event.id}/seats`);
+        const res = await fetch(`/api/events/${event.id}/seats`, {
+          cache: 'no-store',
+        });
         if (res.ok) {
           const data = await res.json();
-          setLiveSeatStatus(data.seatStatus || {});
+          const newStatus = data.seatStatus || {};
+          setLiveSeatStatus(newStatus);
+          return newStatus;
         }
       } catch (error) {
         console.error('Failed to fetch seat status:', error);
       }
+      return null;
+    }
+
+    // Process raw seat status from real-time updates
+    function processRawSeatStatus(rawStatus: Record<string, string>) {
+      const now = Date.now();
+      const processed: Record<string, string> = {};
+
+      for (const [seatId, status] of Object.entries(rawStatus)) {
+        if (typeof status === 'string') {
+          if (status.startsWith('sold:')) {
+            processed[seatId] = 'sold';
+          } else if (status.startsWith('locked:')) {
+            const parts = status.split(':');
+            const expiresAt = parseInt(parts[2] || '0');
+            if (expiresAt > now) {
+              processed[seatId] = 'locked';
+            }
+          }
+        }
+      }
+
+      return processed;
     }
 
     fetchSeatStatus();
@@ -49,25 +76,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
     // Subscribe to real-time updates
     const channel = subscribeToEventSeats(event.id, (payload) => {
       if (payload.seat_status) {
-        // Process the raw seat status to filter expired locks
-        const rawStatus = payload.seat_status;
-        const now = Date.now();
-        const processed: Record<string, string> = {};
-
-        for (const [seatId, status] of Object.entries(rawStatus)) {
-          if (typeof status === 'string') {
-            if (status.startsWith('sold:')) {
-              processed[seatId] = 'sold';
-            } else if (status.startsWith('locked:')) {
-              const parts = status.split(':');
-              const expiresAt = parseInt(parts[2] || '0');
-              if (expiresAt > now) {
-                processed[seatId] = 'locked';
-              }
-            }
-          }
-        }
-
+        const processed = processRawSeatStatus(payload.seat_status);
         setLiveSeatStatus(processed);
 
         // Deselect any seats that were just sold by someone else
@@ -79,8 +88,24 @@ export function EventClient({ event, mapData }: EventClientProps) {
       }
     });
 
+    // Polling fallback: refresh seat status every 30 seconds
+    // This handles cases where real-time isn't working (network issues, etc.)
+    const pollInterval = setInterval(() => {
+      fetchSeatStatus();
+    }, 30000);
+
+    // Also refetch when tab becomes visible (user switches back to this tab)
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        fetchSeatStatus();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       channel.unsubscribe();
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [event.id, deselectSeat]);
 

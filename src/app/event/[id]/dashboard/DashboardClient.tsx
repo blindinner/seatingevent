@@ -30,6 +30,8 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending' | 'cancelled'>('all');
   const [refundingId, setRefundingId] = useState<string | null>(null);
   const [refundError, setRefundError] = useState<string | null>(null);
+  // Local seat status that can be updated after refunds
+  const [seatStatus, setSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
 
   // Handle refund
   const handleRefund = useCallback(async (orderId: string, customerName: string | null) => {
@@ -57,18 +59,32 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
         throw new Error(data.error || 'Refund failed');
       }
 
-      // Update local state
+      // Find the order to get its seat IDs
+      const refundedOrder = orders.find(o => o.id === orderId);
+
+      // Update local orders state
       setOrders(prev =>
         prev.map(o =>
           o.id === orderId ? { ...o, status: 'refunded' as const } : o
         )
       );
+
+      // Update local seat status - remove the refunded seats
+      if (refundedOrder?.seatIds && refundedOrder.seatIds.length > 0) {
+        setSeatStatus(prev => {
+          const newStatus = { ...prev };
+          for (const seatId of refundedOrder.seatIds) {
+            delete newStatus[seatId];
+          }
+          return newStatus;
+        });
+      }
     } catch (err) {
       setRefundError(err instanceof Error ? err.message : 'Refund failed');
     } finally {
       setRefundingId(null);
     }
-  }, []);
+  }, [orders]);
 
   // Calculate stats from orders
   const stats: DashboardStats = useMemo(() => {
@@ -497,7 +513,7 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
                 </div>
                 <MiniSeatMap
                   mapData={mapData}
-                  seatStatus={event.seatStatus}
+                  seatStatus={seatStatus}
                 />
                 <div className="p-3 border-t border-white/[0.08] flex flex-wrap items-center justify-center gap-4 text-xs">
                   {mapData.categories.map(category => (
