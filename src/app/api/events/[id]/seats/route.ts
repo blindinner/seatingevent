@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 // GET - Fetch current seat status for an event
 export async function GET(
@@ -9,7 +9,13 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const { data: event, error } = await supabaseAdmin.client
+    // Create fresh client per request to avoid stale data in serverless warm starts
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: event, error } = await supabase
       .from('events')
       .select('seat_status')
       .eq('id', id)
@@ -22,6 +28,9 @@ export async function GET(
     const rawStatus = (event.seat_status || {}) as Record<string, string>;
     const now = Date.now();
     const seatStatus: Record<string, string> = {};
+
+    // Debug: log raw seat count
+    console.log('Seats API - raw seat count:', Object.keys(rawStatus).length);
 
     // Process seat status - filter out expired locks
     for (const [seatId, status] of Object.entries(rawStatus)) {
