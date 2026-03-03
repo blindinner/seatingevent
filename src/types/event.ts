@@ -50,4 +50,5 @@ export interface PublicEvent {
   mapId: string | null;
   userId: string;
   createdAt: string;
+  seatStatus: Record<string, string>; // seatId -> status (e.g., "sold:orderId")
 }

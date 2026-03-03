@@ -63,7 +63,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Send confirmation email with ticket
-      if (order && payload.client_email && eventId) {
+      const customerEmail = payload.client_email || order?.customerEmail;
+      console.log('Email check:', { hasOrder: !!order, customerEmail, eventId, ticketCode: order?.ticketCode });
+
+      if (order && customerEmail && eventId) {
         try {
           // Fetch event details
           const { data: event } = await supabaseAdmin.client
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
               seatIds.map(id => ({ label: id, category: 'General' }));
 
             const emailResult = await sendTicketEmail({
-              to: payload.client_email,
+              to: customerEmail,
               customerName: payload.client_name || order.customerName || 'Guest',
               eventName: event.name,
               eventDate: event.start_date,
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
                 .from('bookings')
                 .update({ ticket_sent_at: new Date().toISOString() })
                 .eq('id', order.id);
-              console.log('Ticket email sent to:', payload.client_email);
+              console.log('Ticket email sent to:', customerEmail);
             } else {
               console.error('Failed to send ticket email:', emailResult.error);
             }

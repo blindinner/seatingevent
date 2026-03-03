@@ -182,7 +182,7 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
     throw error;
   }
 
-  const event = data as ExtendedDatabaseEvent;
+  const event = data as ExtendedDatabaseEvent & { seat_status?: Record<string, string> };
   return {
     id: event.id,
     name: event.name,
@@ -204,6 +204,7 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
     mapId: event.map_id,
     userId: event.user_id,
     createdAt: event.created_at,
+    seatStatus: event.seat_status || {},
   };
 }
 

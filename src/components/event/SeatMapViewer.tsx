@@ -15,6 +15,7 @@ interface SeatMapViewerProps {
   backgroundColor?: string;
   compact?: boolean; // If true, shows a contained card-like view without zoom controls
   height?: string; // Custom height class, e.g., "h-[300px]"
+  seatStatus?: Record<string, string>; // seatId -> status (e.g., "sold:orderId")
 }
 
 interface ViewState {
@@ -23,7 +24,7 @@ interface ViewState {
   panY: number;
 }
 
-export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height }: SeatMapViewerProps) {
+export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height, seatStatus = {} }: SeatMapViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -211,7 +212,11 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
 
   // Handle seat click
   const handleSeatClick = useCallback((seat: SeatElement, parentCategory?: string) => {
-    if (seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved') {
+    // Check if seat is unavailable (from map data or live status)
+    const liveStatus = seatStatus[seat.id];
+    const isSold = liveStatus?.startsWith('sold:');
+    const isLocked = liveStatus?.startsWith('locked:');
+    if (seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved' || isSold || isLocked) {
       return; // Can't select unavailable seats
     }
 
@@ -244,7 +249,11 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     const y = seat.y + offsetY;
     const categoryId = seat.category || parentCategory || 'general';
     const isSelected = isSeatSelected(seat.id);
-    const isUnavailable = seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved';
+    // Check live seat status from database
+    const liveStatus = seatStatus[seat.id];
+    const isSold = liveStatus?.startsWith('sold:');
+    const isLocked = liveStatus?.startsWith('locked:');
+    const isUnavailable = seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved' || isSold || isLocked;
 
     let fillColor = getCategoryColor(categoryId);
     if (isSelected) {

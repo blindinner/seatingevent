@@ -231,6 +231,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   backgroundColor={themeColor}
                   compact={true}
                   height="h-[420px]"
+                  seatStatus={event.seatStatus}
                 />
               </div>
             )}
