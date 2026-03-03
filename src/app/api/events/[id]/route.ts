@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function DELETE(
   request: NextRequest,
@@ -8,30 +8,33 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
 
-    // Create Supabase client with user's session
-    const supabase = createServerClient(
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    const cookieHeader = request.headers.get('cookie');
+
+    // Create a client to verify the user from cookies
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
+        global: {
+          headers: {
+            cookie: cookieHeader || '',
           },
         },
       }
     );
 
-    // Get the current user
+    // Get the current user from session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify the event belongs to this user
-    const { data: event, error: fetchError } = await supabase
+    // Verify the event belongs to this user (using admin client to bypass RLS)
+    const { data: event, error: fetchError } = await supabaseAdmin.client
       .from('events')
       .select('id, user_id')
       .eq('id', id)
@@ -46,13 +49,13 @@ export async function DELETE(
     }
 
     // Delete related bookings first (if any)
-    await supabase
+    await supabaseAdmin.client
       .from('bookings')
       .delete()
       .eq('event_id', id);
 
     // Delete the event
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin.client
       .from('events')
       .delete()
       .eq('id', id);
