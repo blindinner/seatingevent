@@ -49,12 +49,17 @@ export async function POST(request: NextRequest) {
       console.log('Payment successful for order:', paymentOrderId);
       console.log('AllPay transaction_uid:', payload.transaction_uid);
 
-      // Update order status with AllPay transaction data
-      const order = await updateOrderByPaymentId(paymentOrderId, {
-        status: 'paid',
-        // Store AllPay transaction UID as the primary payment identifier
-        transactionId: payload.transaction_uid || payload.receipt || `${payload.card_brand}_${payload.card_mask}`,
-      });
+      // Only update transactionId if AllPay provides a real one (not card fallback)
+      // We may already have payment_id stored from creation
+      const updateData: { status: 'paid'; transactionId?: string } = { status: 'paid' };
+      if (payload.transaction_uid) {
+        updateData.transactionId = payload.transaction_uid;
+      } else if (payload.receipt) {
+        updateData.transactionId = payload.receipt;
+      }
+      // Don't overwrite with card fallback - we already have payment_id from creation
+
+      const order = await updateOrderByPaymentId(paymentOrderId, updateData);
 
       // Reserve the seats in the event
       if (order && eventId && seatIds.length > 0) {
