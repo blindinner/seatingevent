@@ -3,6 +3,10 @@ import { notFound } from 'next/navigation';
 import { getPublicEvent, getMap } from '@/lib/supabase';
 import { EventClient } from './EventClient';
 
+// Disable caching for this page - seat status must always be fresh
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
