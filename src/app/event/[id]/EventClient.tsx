@@ -33,12 +33,6 @@ export function EventClient({ event, mapData }: EventClientProps) {
   // Live seat status - fetched client-side for real-time accuracy
   const [liveSeatStatus, setLiveSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
 
-  // Debug: log initial seat status from server
-  useEffect(() => {
-    console.log('[SeatStatus] Initial from server:', event.seatStatus);
-    console.log('[SeatStatus] Current state:', liveSeatStatus);
-  }, []);
-
   // Fetch live seat status on mount and subscribe to real-time updates
   useEffect(() => {
     async function fetchSeatStatus() {
@@ -46,9 +40,6 @@ export function EventClient({ event, mapData }: EventClientProps) {
         const res = await fetch(`/api/events/${event.id}/seats`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          console.log('[SeatStatus] Full API response:', data);
-          console.log('[SeatStatus] seatStatus:', data.seatStatus);
-          console.log('[SeatStatus] _debug:', data._debug);
           setLiveSeatStatus(data.seatStatus || {});
         }
       } catch (error) {
