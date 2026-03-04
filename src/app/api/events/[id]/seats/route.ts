@@ -9,7 +9,8 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Create fresh client per request to avoid stale data
+    // Create fresh client per request with cache-busting headers
+    // This ensures PostgREST doesn't serve stale cached data
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -18,13 +19,18 @@ export async function GET(
           autoRefreshToken: false,
           persistSession: false,
         },
+        global: {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        },
       }
     );
 
-    // Use select('*') and add a cache-busting header to avoid PostgREST cache
     const { data: event, error } = await supabase
       .from('events')
-      .select('*')
+      .select('seat_status')
       .eq('id', id)
       .single();
 
@@ -34,15 +40,6 @@ export async function GET(
     }
 
     const rawStatus = (event.seat_status || {}) as Record<string, string>;
-
-    // Debug: check what the query actually returned
-    const debugInfo = {
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      serviceKeyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20),
-      eventKeys: event ? Object.keys(event) : [],
-      seatStatusType: typeof event?.seat_status,
-      seatStatusValue: event?.seat_status,
-    };
     const now = Date.now();
     const seatStatus: Record<string, string> = {};
 
@@ -60,12 +57,7 @@ export async function GET(
     }
 
     // Seat status changes via webhooks, must not be cached
-    return NextResponse.json({
-      seatStatus,
-      _v: 4,  // Version check - remove after debugging
-      _rawCount: Object.keys(rawStatus).length,
-      _debug: debugInfo,
-    }, {
+    return NextResponse.json({ seatStatus }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
       },
