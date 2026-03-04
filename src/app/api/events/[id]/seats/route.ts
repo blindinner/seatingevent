@@ -38,7 +38,11 @@ export async function GET(
     }
 
     // Seat status changes via webhooks, must not be cached
-    return NextResponse.json({ seatStatus }, {
+    return NextResponse.json({
+      seatStatus,
+      _v: 2,  // Version check - remove after debugging
+      _rawCount: Object.keys(rawStatus).length,
+    }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
       },
