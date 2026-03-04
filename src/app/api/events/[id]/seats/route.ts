@@ -21,9 +21,10 @@ export async function GET(
       }
     );
 
+    // Use select('*') and add a cache-busting header to avoid PostgREST cache
     const { data: event, error } = await supabase
       .from('events')
-      .select('seat_status')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -61,7 +62,7 @@ export async function GET(
     // Seat status changes via webhooks, must not be cached
     return NextResponse.json({
       seatStatus,
-      _v: 3,  // Version check - remove after debugging
+      _v: 4,  // Version check - remove after debugging
       _rawCount: Object.keys(rawStatus).length,
       _debug: debugInfo,
     }, {
