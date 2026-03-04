@@ -46,7 +46,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
         const res = await fetch(`/api/events/${event.id}/seats`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          console.log('[SeatStatus] Fetched from API:', data.seatStatus);
+          console.log('[SeatStatus] Full API response:', data);
+          console.log('[SeatStatus] seatStatus:', data.seatStatus);
+          console.log('[SeatStatus] _debug:', data._debug);
           setLiveSeatStatus(data.seatStatus || {});
         }
       } catch (error) {
