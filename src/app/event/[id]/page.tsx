@@ -3,10 +3,6 @@ import { notFound } from 'next/navigation';
 import { getPublicEvent, getMap } from '@/lib/supabase';
 import { EventClient } from './EventClient';
 
-// Ensure the page is not cached - seat status needs to be fresh
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 interface PageProps {
   params: Promise<{ id: string }>;
 }

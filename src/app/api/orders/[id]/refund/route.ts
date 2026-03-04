@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getAllPayConfig, processRefund } from '@/lib/payments';
+import { recordRefundTransactions, getFeeConfig } from '@/lib/financial';
 
 export async function POST(
   request: NextRequest,
@@ -89,63 +90,64 @@ export async function POST(
       .update({ payment_status: 'refunded' })
       .eq('id', orderId);
 
+    // Record refund transactions in the ledger (with 5% refund fee)
+    try {
+      const refundAmount = order.amount_paid || 0;
+      const originalPlatformFee = order.platform_fee_amount || (refundAmount * 0.10);
+      const feeConfig = await getFeeConfig(order.event_id);
+
+      const { refundBreakdown } = await recordRefundTransactions({
+        bookingId: orderId,
+        eventId: order.event_id,
+        organizerId: order.events.user_id,
+        refundAmount,
+        currency: order.currency || 'ILS',
+        originalPlatformFee,
+        refundFeePercent: feeConfig.refundFeePercent,
+        allpayOrderId: allpayOrderId,
+        reason: 'Full refund initiated by organizer',
+        initiatedBy: user.id,
+      });
+
+      console.log('Refund transactions recorded:', {
+        orderId,
+        grossRefund: refundBreakdown.grossRefund,
+        refundFee: refundBreakdown.refundFee,
+        customerReceives: refundBreakdown.customerRefund,
+        platformRetained: refundBreakdown.platformRetained,
+      });
+    } catch (refundTrackingError) {
+      // Log but don't fail - refund was already processed
+      console.error('Error recording refund transactions:', refundTrackingError);
+    }
+
     // Release the seats
     const seatIds = order.seat_ids || [];
     const eventId = order.event_id;
 
-    console.log('Refund: Processing seat release', {
-      orderId,
-      eventId,
-      seatIds,
-    });
-
     if (seatIds.length > 0) {
-      // Fetch FRESH seat_status to avoid race conditions
-      // (the one from the order JOIN might be stale)
-      const { data: freshEvent, error: freshError } = await supabaseAdmin.client
+      // Fetch fresh seat_status to avoid race conditions
+      const { data: freshEvent } = await supabaseAdmin.client
         .from('events')
         .select('seat_status')
         .eq('id', eventId)
         .single();
 
-      if (freshError) {
-        console.error('Refund: Failed to fetch fresh seat_status', freshError);
-        // Fall back to the one from the order
-      }
-
       const currentSeatStatus = (freshEvent?.seat_status || order.events.seat_status || {}) as Record<string, string>;
       const newSeatStatus = { ...currentSeatStatus };
 
-      console.log('Refund: Current seat_status keys', Object.keys(currentSeatStatus));
-
       // Remove sold status for refunded seats
       for (const seatId of seatIds) {
-        if (newSeatStatus[seatId]) {
-          console.log(`Refund: Removing seat ${seatId} with status ${newSeatStatus[seatId]}`);
-          delete newSeatStatus[seatId];
-        } else {
-          console.log(`Refund: Seat ${seatId} not found in seat_status`);
-        }
+        delete newSeatStatus[seatId];
       }
 
-      console.log('Refund: New seat_status keys', Object.keys(newSeatStatus));
-
-      const { error: updateError } = await supabaseAdmin.client
+      await supabaseAdmin.client
         .from('events')
         .update({ seat_status: newSeatStatus })
         .eq('id', eventId);
 
-      if (updateError) {
-        console.error('Refund: Failed to update seat_status', updateError);
-      } else {
-        console.log('Refund: Successfully updated seat_status');
-      }
-
-      // Invalidate caches so seat status is fresh
+      // Invalidate page cache
       revalidatePath(`/event/${eventId}`);
-      revalidatePath(`/event/${eventId}/dashboard`);
-      // Also revalidate API routes (though API routes with no-store should not be cached)
-      revalidatePath(`/api/events/${eventId}/seats`);
     }
 
     return NextResponse.json({ success: true });

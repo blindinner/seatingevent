@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { nanoid } from 'nanoid';
-import type { TicketTier, EventType, EmailSettings } from '@/types/event';
+import type { TicketTier, EventType } from '@/types/event';
 import { EventTypeSelector } from '@/components/create/EventTypeSelector';
 import { TicketTierEditor } from '@/components/create/TicketTierEditor';
 import { SeatMapEditorModal } from '@/components/create/SeatMapEditorModal';
@@ -353,8 +353,6 @@ export default function EditEvent() {
   const [openPicker, setOpenPicker] = useState<'startDate' | 'startTime' | 'endDate' | 'endTime' | null>(null);
   const [selectedColor, setSelectedColor] = useState(themeColors[1]);
   const [selectedFont, setSelectedFont] = useState(themeFonts[0]);
-  const [emailSettings, setEmailSettings] = useState<EmailSettings>({});
-  const [showEmailEditor, setShowEmailEditor] = useState(false);
 
   const startDateRef = useRef<HTMLButtonElement>(null);
   const startTimeRef = useRef<HTMLButtonElement>(null);
@@ -417,11 +415,6 @@ export default function EditEvent() {
         // Find matching font
         const matchingFont = themeFonts.find(f => f.id === event.theme_font);
         if (matchingFont) setSelectedFont(matchingFont);
-
-        // Load email settings
-        if (event.email_settings) {
-          setEmailSettings(event.email_settings);
-        }
 
         // Load map if seated event
         if (event.map_id) {
@@ -556,7 +549,6 @@ export default function EditEvent() {
           theme_color: selectedColor.bg,
           theme_font: selectedFont.id,
           require_approval: requireApproval,
-          email_settings: Object.keys(emailSettings).length > 0 ? emailSettings : null,
         })
         .eq('id', eventId);
 
@@ -968,90 +960,6 @@ export default function EditEvent() {
                     <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${requireApproval ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'}`} />
                   </button>
                 </div>
-              </div>
-
-              {/* Email Settings */}
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowEmailEditor(!showEmailEditor)}
-                  className="w-full flex items-center justify-between px-4 py-3.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                    </svg>
-                    <div className="text-left">
-                      <span className="text-[14px] text-white/70">Ticket Email Template</span>
-                      <p className="text-[12px] text-white/40">Customize the confirmation email</p>
-                    </div>
-                  </div>
-                  <svg className={`w-5 h-5 text-white/30 transition-transform ${showEmailEditor ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {showEmailEditor && (
-                  <div className="px-4 pb-4 space-y-4 border-t border-white/[0.04] pt-4">
-                    <p className="text-[11px] text-white/40">
-                      Use {'{{customerName}}'} and {'{{eventName}}'} as placeholders
-                    </p>
-
-                    <div>
-                      <label className="block text-[12px] text-white/50 mb-1.5">Email Subject</label>
-                      <input
-                        type="text"
-                        value={emailSettings.subject || ''}
-                        onChange={(e) => setEmailSettings({ ...emailSettings, subject: e.target.value })}
-                        placeholder="Your tickets for {{eventName}}"
-                        className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[12px] text-white/50 mb-1.5">Greeting</label>
-                      <input
-                        type="text"
-                        value={emailSettings.greeting || ''}
-                        onChange={(e) => setEmailSettings({ ...emailSettings, greeting: e.target.value })}
-                        placeholder="You're going!"
-                        className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[12px] text-white/50 mb-1.5">Body Text</label>
-                      <input
-                        type="text"
-                        value={emailSettings.bodyText || ''}
-                        onChange={(e) => setEmailSettings({ ...emailSettings, bodyText: e.target.value })}
-                        placeholder="Your tickets are confirmed"
-                        className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[12px] text-white/50 mb-1.5">Footer Text</label>
-                      <input
-                        type="text"
-                        value={emailSettings.footerText || ''}
-                        onChange={(e) => setEmailSettings({ ...emailSettings, footerText: e.target.value })}
-                        placeholder="Questions? Reply to this email or contact the event organizer."
-                        className="w-full px-3 py-2 bg-white/[0.06] border border-white/10 rounded-lg text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
-                      />
-                    </div>
-
-                    {(emailSettings.subject || emailSettings.greeting || emailSettings.bodyText || emailSettings.footerText) && (
-                      <button
-                        type="button"
-                        onClick={() => setEmailSettings({})}
-                        className="text-[12px] text-red-400 hover:text-red-300"
-                      >
-                        Reset to defaults
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Save Button */}

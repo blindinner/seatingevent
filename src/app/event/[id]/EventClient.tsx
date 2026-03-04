@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/currency';
 import { CheckoutModal } from '@/components/checkout/CheckoutModal';
 import { subscribeToEventSeats } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { usePageView } from '@/hooks/usePageView';
 
 interface EventClientProps {
   event: PublicEvent;
@@ -26,30 +27,26 @@ export function EventClient({ event, mapData }: EventClientProps) {
   // Check if current user is the event owner
   const isOwner = user?.id === event.userId;
 
+  // Track page view for analytics
+  usePageView(event.id);
+
   // Live seat status - fetched client-side for real-time accuracy
   const [liveSeatStatus, setLiveSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
 
   // Fetch live seat status on mount and subscribe to real-time updates
   useEffect(() => {
-    // Fetch current seat status
     async function fetchSeatStatus() {
       try {
-        const res = await fetch(`/api/events/${event.id}/seats`, {
-          cache: 'no-store',
-        });
+        const res = await fetch(`/api/events/${event.id}/seats`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          const newStatus = data.seatStatus || {};
-          setLiveSeatStatus(newStatus);
-          return newStatus;
+          setLiveSeatStatus(data.seatStatus || {});
         }
       } catch (error) {
         console.error('Failed to fetch seat status:', error);
       }
-      return null;
     }
 
-    // Process raw seat status from real-time updates
     function processRawSeatStatus(rawStatus: Record<string, string>) {
       const now = Date.now();
       const processed: Record<string, string> = {};
@@ -67,7 +64,6 @@ export function EventClient({ event, mapData }: EventClientProps) {
           }
         }
       }
-
       return processed;
     }
 
@@ -88,13 +84,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
       }
     });
 
-    // Polling fallback: refresh seat status every 30 seconds
-    // This handles cases where real-time isn't working (network issues, etc.)
-    const pollInterval = setInterval(() => {
-      fetchSeatStatus();
-    }, 30000);
-
-    // Also refetch when tab becomes visible (user switches back to this tab)
+    // Refetch when tab becomes visible (user switches back to this tab)
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
         fetchSeatStatus();
@@ -104,7 +94,6 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
     return () => {
       channel.unsubscribe();
-      clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [event.id, deselectSeat]);

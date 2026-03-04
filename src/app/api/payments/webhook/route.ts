@@ -5,6 +5,11 @@ import { updateOrderByPaymentId, getOrderByPaymentId } from '@/lib/orders';
 import { reserveSeatsForOrder, releaseSeats } from '@/lib/seats';
 import { sendTicketEmail, sendOwnerNotificationEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import {
+  recordPaymentTransactions,
+  updateBookingWithFees,
+  getFeeConfig,
+} from '@/lib/financial';
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,6 +66,45 @@ export async function POST(request: NextRequest) {
       // Don't overwrite with card fallback - we already have payment_id from creation
 
       const order = await updateOrderByPaymentId(paymentOrderId, updateData);
+
+      // Calculate and record platform fee (10%)
+      if (order && eventId) {
+        try {
+          // Get organizer ID from event for transaction tracking
+          const { data: eventData } = await supabaseAdmin.client
+            .from('events')
+            .select('user_id')
+            .eq('id', eventId)
+            .single();
+
+          const feeConfig = await getFeeConfig(eventId);
+          const { feeBreakdown } = await recordPaymentTransactions({
+            bookingId: order.id,
+            eventId: eventId,
+            organizerId: eventData?.user_id,
+            grossAmount: order.totalAmount,
+            currency: order.currency,
+            allpayTransactionId: payload.transaction_uid || payload.receipt,
+            allpayOrderId: paymentOrderId,
+            feeConfig,
+          });
+
+          // Update booking with fee breakdown
+          await updateBookingWithFees(order.id, feeBreakdown);
+
+          console.log('Financial tracking recorded:', {
+            orderId: order.id,
+            organizerId: eventData?.user_id,
+            grossAmount: feeBreakdown.grossAmount,
+            platformFee: feeBreakdown.platformFee,
+            organizerAmount: feeBreakdown.organizerAmount,
+            feePercent: feeConfig.platformFeePercent,
+          });
+        } catch (feeError) {
+          // Log but don't fail the webhook - payment is still valid
+          console.error('Error recording financial tracking:', feeError);
+        }
+      }
 
       // Reserve the seats in the event
       if (order && eventId && seatIds.length > 0) {

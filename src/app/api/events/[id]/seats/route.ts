@@ -29,29 +29,18 @@ export async function GET(
     const now = Date.now();
     const seatStatus: Record<string, string> = {};
 
-    // Debug: log what we got from the database
-    console.log('Seats API - event_id:', id);
-    console.log('Seats API - raw seat_status from DB:', JSON.stringify(rawStatus));
-    console.log('Seats API - raw seat count:', Object.keys(rawStatus).length);
-    console.log('Seats API - raw seat keys:', Object.keys(rawStatus).join(', '));
-
     // Process seat status - filter out expired locks
     for (const [seatId, status] of Object.entries(rawStatus)) {
       if (status.startsWith('sold:')) {
         seatStatus[seatId] = 'sold';
       } else if (status.startsWith('locked:')) {
-        // Check if lock expired
         const parts = status.split(':');
         const expiresAt = parseInt(parts[2] || '0');
         if (expiresAt > now) {
           seatStatus[seatId] = 'locked';
         }
-        // If expired, don't include it (seat is available)
       }
     }
-
-    console.log('Seats API - processed seat count:', Object.keys(seatStatus).length);
-    console.log('Seats API - processed seat keys:', Object.keys(seatStatus).join(', '));
 
     // Seat status changes via webhooks, must not be cached
     return NextResponse.json({ seatStatus }, {
