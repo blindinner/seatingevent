@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 // GET - Fetch current seat status for an event
 export async function GET(
@@ -9,7 +9,19 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const { data: event, error } = await supabaseAdmin.client
+    // Create fresh client per request to avoid stale data
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+
+    const { data: event, error } = await supabase
       .from('events')
       .select('seat_status')
       .eq('id', id)
@@ -21,6 +33,15 @@ export async function GET(
     }
 
     const rawStatus = (event.seat_status || {}) as Record<string, string>;
+
+    // Debug: check what the query actually returned
+    const debugInfo = {
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      serviceKeyPrefix: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20),
+      eventKeys: event ? Object.keys(event) : [],
+      seatStatusType: typeof event?.seat_status,
+      seatStatusValue: event?.seat_status,
+    };
     const now = Date.now();
     const seatStatus: Record<string, string> = {};
 
@@ -40,8 +61,9 @@ export async function GET(
     // Seat status changes via webhooks, must not be cached
     return NextResponse.json({
       seatStatus,
-      _v: 2,  // Version check - remove after debugging
+      _v: 3,  // Version check - remove after debugging
       _rawCount: Object.keys(rawStatus).length,
+      _debug: debugInfo,
     }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
