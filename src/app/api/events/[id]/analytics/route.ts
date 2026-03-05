@@ -65,7 +65,7 @@ export async function GET(
     }
 
     // Fetch page views within the period
-    const { data: pageViews, error: viewsError } = await serviceClient
+    const { data: rawPageViews, error: viewsError } = await serviceClient
       .from('page_views')
       .select('viewed_at, visitor_id, referrer, device_type, country')
       .eq('event_id', eventId)
@@ -76,6 +76,26 @@ export async function GET(
       console.error('Failed to fetch page views:', viewsError);
       return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
     }
+
+    // Filter out internal/platform referrers (payment processors, preview deployments, etc.)
+    const excludedReferrerPatterns = [
+      'allpay',        // Payment processor
+      'vercel.app',    // Preview deployments
+      'vercel.com',    // Vercel dashboard/links
+    ];
+
+    const isExcludedReferrer = (referrer: string | null): boolean => {
+      if (!referrer) return false;
+      try {
+        const url = new URL(referrer);
+        const hostname = url.hostname.toLowerCase();
+        return excludedReferrerPatterns.some(pattern => hostname.includes(pattern));
+      } catch {
+        return false;
+      }
+    };
+
+    const pageViews = (rawPageViews || []).filter(view => !isExcludedReferrer(view.referrer));
 
     // Process analytics data
     const totalViews = pageViews?.length || 0;

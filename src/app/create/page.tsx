@@ -14,7 +14,7 @@ import { useMapStore } from '@/stores/mapStore';
 import { formatCurrency, formatCurrencyRange, getCurrencySymbol, DEFAULT_CURRENCY } from '@/lib/currency';
 import { getUser } from '@/lib/auth';
 import { createMap, createExtendedEvent, uploadCoverImage } from '@/lib/supabase';
-import { LoginModal } from '@/components/auth/LoginModal';
+import { SimpleAuthModal } from '@/components/auth/SimpleAuthModal';
 import { EventPreviewModal } from '@/components/create/EventPreviewModal';
 import { useAuth } from '@/components/auth/AuthProvider';
 
@@ -967,18 +967,20 @@ function MapPreview({ map }: { map: import('@/types/map').MapData | null }) {
 
 export default function CreateEvent() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [eventName, setEventName] = useState('');
   const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState('2026-02-25');
+  const [startDate, setStartDate] = useState(() => formatLocalDate(new Date()));
   const [startTime, setStartTime] = useState('19:00');
-  const [endDate, setEndDate] = useState('2026-02-25');
+  const [endDate, setEndDate] = useState(() => formatLocalDate(new Date()));
   const [endTime, setEndTime] = useState('22:00');
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Show auth modal for unauthenticated users (only after auth state is loaded)
+  const showAuthModal = !authLoading && user === null;
 
   // Picker open states
   const [openPicker, setOpenPicker] = useState<'startDate' | 'startTime' | 'endDate' | 'endTime' | null>(null);
@@ -1091,9 +1093,9 @@ export default function CreateEvent() {
 
     try {
       // Check if user is logged in
-      const user = await getUser();
-      if (!user) {
-        setShowLoginModal(true);
+      const currentUser = await getUser();
+      if (!currentUser) {
+        setSubmitError('Please sign in to create an event');
         setIsSubmitting(false);
         return;
       }
@@ -1110,7 +1112,7 @@ export default function CreateEvent() {
       // 1. For seated events, save the map first
       if (eventType === 'seated' && map) {
         const savedMap = await createMap({
-          user_id: user.id,
+          user_id: currentUser.id,
           name: `${eventName} Seat Map`,
           description: null,
           data: map,
@@ -1124,7 +1126,7 @@ export default function CreateEvent() {
       let coverImageUrl: string | null = null;
       if (coverImage) {
         try {
-          coverImageUrl = await uploadCoverImage(coverImage, user.id);
+          coverImageUrl = await uploadCoverImage(coverImage, currentUser.id);
         } catch (uploadError) {
           console.error('Failed to upload cover image:', uploadError);
           // Continue without cover image
@@ -1134,7 +1136,7 @@ export default function CreateEvent() {
       // 3. Create the event
       const newEvent = await createExtendedEvent({
         mapId: mapId || undefined,
-        userId: user.id,
+        userId: currentUser.id,
         name: eventName,
         description: description || undefined,
         startDate,
@@ -1559,13 +1561,18 @@ export default function CreateEvent() {
                     <div className="p-3 space-y-2">
                       {map.categories.map(category => (
                         <div key={category.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.04] group">
-                          <input
-                            type="color"
-                            value={category.color}
-                            onChange={(e) => updateCategory(category.id, { color: e.target.value })}
-                            className="w-6 h-6 rounded-full cursor-pointer border-0 bg-transparent flex-shrink-0"
-                            style={{ backgroundColor: category.color }}
-                          />
+                          <div className="relative w-6 h-6 flex-shrink-0">
+                            <div
+                              className="w-6 h-6 rounded-full cursor-pointer"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <input
+                              type="color"
+                              value={category.color}
+                              onChange={(e) => updateCategory(category.id, { color: e.target.value })}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                          </div>
                           <input
                             type="text"
                             value={category.name}
@@ -1763,15 +1770,12 @@ export default function CreateEvent() {
         onClose={() => setSeatMapModalOpen(false)}
       />
 
-      {/* Login Modal */}
-      <LoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
+      {/* Auth Modal - shown for unauthenticated users */}
+      <SimpleAuthModal
+        isOpen={showAuthModal}
         onSuccess={() => {
-          setShowLoginModal(false);
-          // Re-trigger submit after login
-          const form = document.getElementById('create-event-form') as HTMLFormElement;
-          if (form) form.requestSubmit();
+          // Auth state will update automatically via useAuth hook
+          // Modal will close when user becomes non-null
         }}
       />
 

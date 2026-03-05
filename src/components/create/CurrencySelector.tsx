@@ -29,9 +29,10 @@ export function CurrencySelector({ value, onChange }: CurrencySelectorProps) {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      // Use viewport-relative coordinates for fixed positioning
       setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 4,
+        left: rect.left,
         width: Math.max(rect.width, 240),
       });
       // Focus search input when opened

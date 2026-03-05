@@ -45,12 +45,14 @@ export async function signUp(email: string, password: string) {
   return { user: data.user, session: data.session, needsEmailConfirmation: false };
 }
 
-export async function signInWithOAuth(provider: OAuthProvider) {
+export async function signInWithOAuth(provider: OAuthProvider, redirectPath?: string) {
   const supabase = getSupabaseClient();
+  // Use provided path, or current path, as the return destination
+  const returnTo = redirectPath || window.location.pathname;
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider as Provider,
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`,
     },
   });
 
@@ -62,6 +64,32 @@ export async function signOut() {
   const supabase = getSupabaseClient();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+}
+
+// OTP (One-Time Password) authentication - Luma-style
+export async function sendOtp(email: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+    },
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function verifyOtp(email: string, token: string) {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'email',
+  });
+
+  if (error) throw error;
+  return data;
 }
 
 export async function getSession() {
