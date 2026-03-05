@@ -446,13 +446,15 @@ export function CheckoutModal({
                 <h3 className="text-[12px] text-white/40 uppercase tracking-wider font-medium mb-4">Card Details</h3>
 
                 {/* AllPay iframe */}
-                <div className="rounded-xl overflow-hidden bg-white mb-6">
+                <div className="mb-6">
                   <iframe
                     id="allpay-payment-iframe"
                     src={paymentUrl}
                     className="w-full border-0"
-                    style={{ height: '320px' }}
+                    style={{ height: '320px', background: 'transparent' }}
                     allow="payment *"
+                    // @ts-expect-error - allowtransparency is a valid HTML attribute
+                    allowtransparency="true"
                     onLoad={initializeAllpay}
                   />
                 </div>
