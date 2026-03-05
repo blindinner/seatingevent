@@ -55,15 +55,27 @@ export async function POST(request: NextRequest) {
       console.log('Payment successful for order:', paymentOrderId);
       console.log('AllPay transaction_uid:', payload.transaction_uid);
 
+      // Check if order already has a ticket code (from success redirect)
+      const existingOrder = await getOrderByPaymentId(paymentOrderId);
+
       // Only update transactionId if AllPay provides a real one (not card fallback)
-      // We may already have payment_id stored from creation
-      const updateData: { status: 'paid'; transactionId?: string } = { status: 'paid' };
+      const updateData: { status: 'paid'; transactionId?: string; ticketCode?: string } = { status: 'paid' };
       if (payload.transaction_uid) {
         updateData.transactionId = payload.transaction_uid;
       } else if (payload.receipt) {
         updateData.transactionId = payload.receipt;
       }
-      // Don't overwrite with card fallback - we already have payment_id from creation
+
+      // Generate ticket code only if success redirect hasn't done it yet (fallback)
+      if (!existingOrder?.ticketCode) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 8; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        updateData.ticketCode = code;
+        console.log('[Webhook] Generated fallback ticket code:', code);
+      }
 
       const order = await updateOrderByPaymentId(paymentOrderId, updateData);
 

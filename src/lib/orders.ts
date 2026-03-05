@@ -201,10 +201,8 @@ export async function updateOrderByPaymentId(
   if (updates.organizerAmount !== undefined) {
     updateData.organizer_amount = updates.organizerAmount;
   }
-
-  // Generate ticket code on successful payment
-  if (updates.status === 'paid') {
-    updateData.ticket_code = generateTicketCode();
+  if (updates.ticketCode !== undefined) {
+    updateData.ticket_code = updates.ticketCode;
   }
 
   const { data, error } = await supabaseAdmin.client

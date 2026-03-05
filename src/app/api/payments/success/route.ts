@@ -3,6 +3,16 @@ import { getOrderByPaymentId, updateOrderByPaymentId } from '@/lib/orders';
 import { sendTicketEmail, sendOwnerNotificationEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+// Generate a unique ticket code
+function generateTicketCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const orderId = searchParams.get('order_id');
@@ -22,10 +32,12 @@ export async function GET(request: NextRequest) {
     // If order is still pending, mark it as paid immediately
     // AllPay only redirects to success URL if payment succeeded
     if (order.status === 'pending') {
-      console.log('[Payment Success] Marking order as paid:', order.id);
+      const ticketCode = generateTicketCode();
+      console.log('[Payment Success] Marking order as paid:', order.id, 'ticket:', ticketCode);
 
       const updatedOrder = await updateOrderByPaymentId(orderId, {
         status: 'paid',
+        ticketCode,
       });
 
       if (updatedOrder) {
