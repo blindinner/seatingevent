@@ -15,12 +15,18 @@ export async function GET(
       .eq('id', id)
       .single();
 
+    // Debug logging
+    console.log('[Seats API] Event ID:', id);
+    console.log('[Seats API] Query result:', { event, error });
+    console.log('[Seats API] seat_status from DB:', event?.seat_status);
+
     if (error || !event) {
       console.error('[Seats API] Error or no event:', error);
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
     const rawStatus = (event.seat_status || {}) as Record<string, string>;
+    console.log('[Seats API] rawStatus entries:', Object.keys(rawStatus).length);
     const now = Date.now();
     const seatStatus: Record<string, string> = {};
 
@@ -38,7 +44,16 @@ export async function GET(
     }
 
     // Seat status changes via webhooks, must not be cached
-    return NextResponse.json({ seatStatus }, {
+    // Include debug info temporarily
+    return NextResponse.json({
+      seatStatus,
+      _debug: {
+        eventId: id,
+        rawStatusKeys: Object.keys(rawStatus),
+        processedKeys: Object.keys(seatStatus),
+        hasData: !!event?.seat_status,
+      }
+    }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
       },
