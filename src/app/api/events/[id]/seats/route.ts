@@ -11,11 +11,19 @@ export async function GET(
     const { id: eventId } = await params;
 
     // Query paid bookings directly - this is the source of truth
+    console.log('[Seats API] Querying bookings for event:', eventId);
+
     const { data: paidBookings, error: bookingsError } = await supabaseAdmin.client
       .from('bookings')
       .select('id, seat_ids')
       .eq('event_id', eventId)
       .eq('payment_status', 'paid');
+
+    console.log('[Seats API] Query result:', {
+      count: paidBookings?.length,
+      bookings: paidBookings,
+      error: bookingsError
+    });
 
     if (bookingsError) {
       console.error('[Seats API] Error fetching bookings:', bookingsError);
