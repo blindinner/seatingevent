@@ -11,7 +11,8 @@ export async function GET(
     const { id: eventId } = await params;
 
     // Query paid bookings directly - this is the source of truth
-    console.log('[Seats API] Querying bookings for event:', eventId);
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    console.log('[Seats API] Querying bookings for event:', eventId, '| Service key configured:', hasServiceKey);
 
     const { data: paidBookings, error: bookingsError } = await supabaseAdmin.client
       .from('bookings')
