@@ -300,6 +300,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
               stroke="#666"
               strokeWidth={1.5}
               opacity={0.8}
+              pointerEvents="none"
             />
             <line
               x1={x + (seat.radius || 12) * 0.4}
@@ -309,6 +310,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
               stroke="#666"
               strokeWidth={1.5}
               opacity={0.8}
+              pointerEvents="none"
             />
           </>
         )}

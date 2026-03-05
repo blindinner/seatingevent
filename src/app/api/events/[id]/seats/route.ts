@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 // GET - Fetch current seat status for an event
 export async function GET(
@@ -9,26 +9,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Create fresh client per request with cache-busting headers
-    // This ensures PostgREST doesn't serve stale cached data
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-        global: {
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          },
-        },
-      }
-    );
-
-    const { data: event, error } = await supabase
+    const { data: event, error } = await supabaseAdmin.client
       .from('events')
       .select('seat_status')
       .eq('id', id)

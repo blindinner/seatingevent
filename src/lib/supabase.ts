@@ -170,6 +170,29 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
   return data as ExtendedDatabaseEvent;
 }
 
+// Process raw seat status to filter out expired locks
+function processRawSeatStatus(rawStatus: Record<string, string>): Record<string, string> {
+  const now = Date.now();
+  const processed: Record<string, string> = {};
+
+  for (const [seatId, status] of Object.entries(rawStatus)) {
+    if (typeof status === 'string') {
+      if (status.startsWith('sold:')) {
+        processed[seatId] = 'sold';
+      } else if (status.startsWith('locked:')) {
+        const parts = status.split(':');
+        const expiresAt = parseInt(parts[2] || '0');
+        if (expiresAt > now) {
+          processed[seatId] = 'locked';
+        }
+        // If expired, don't add to processed (seat is available)
+      }
+    }
+  }
+
+  return processed;
+}
+
 export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
   // Use admin client to bypass RLS and ensure seat_status is returned
   const { supabaseAdmin } = await import('./supabase-admin');
@@ -186,6 +209,10 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
   }
 
   const event = data as ExtendedDatabaseEvent & { seat_status?: Record<string, string> };
+
+  // Process seat status to filter out expired locks
+  const processedSeatStatus = processRawSeatStatus(event.seat_status || {});
+
   return {
     id: event.id,
     name: event.name,
@@ -207,7 +234,7 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
     mapId: event.map_id,
     userId: event.user_id,
     createdAt: event.created_at,
-    seatStatus: event.seat_status || {},
+    seatStatus: processedSeatStatus,
   };
 }
 
