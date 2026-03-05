@@ -2,58 +2,63 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 // GET - Fetch current seat status for an event
+// This queries the bookings table directly (source of truth) instead of relying on seat_status field
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id: eventId } = await params;
 
-    const { data: event, error } = await supabaseAdmin.client
-      .from('events')
-      .select('seat_status')
-      .eq('id', id)
-      .single();
+    // Query paid bookings directly - this is the source of truth
+    const { data: paidBookings, error: bookingsError } = await supabaseAdmin.client
+      .from('bookings')
+      .select('id, seat_ids')
+      .eq('event_id', eventId)
+      .eq('payment_status', 'paid');
 
-    // Debug logging
-    console.log('[Seats API] Event ID:', id);
-    console.log('[Seats API] Query result:', { event, error });
-    console.log('[Seats API] seat_status from DB:', event?.seat_status);
-
-    if (error || !event) {
-      console.error('[Seats API] Error or no event:', error);
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    if (bookingsError) {
+      console.error('[Seats API] Error fetching bookings:', bookingsError);
+      return NextResponse.json({ error: 'Failed to fetch seat status' }, { status: 500 });
     }
 
-    const rawStatus = (event.seat_status || {}) as Record<string, string>;
-    console.log('[Seats API] rawStatus entries:', Object.keys(rawStatus).length);
-    const now = Date.now();
+    // Query pending bookings to check for locked seats (active checkout sessions)
+    const { data: pendingBookings, error: pendingError } = await supabaseAdmin.client
+      .from('bookings')
+      .select('id, seat_ids, created_at')
+      .eq('event_id', eventId)
+      .eq('payment_status', 'pending');
+
+    if (pendingError) {
+      console.error('[Seats API] Error fetching pending bookings:', pendingError);
+      // Continue without pending - sold seats are more important
+    }
+
+    // Build seat status from bookings
     const seatStatus: Record<string, string> = {};
 
-    // Process seat status - filter out expired locks
-    for (const [seatId, status] of Object.entries(rawStatus)) {
-      if (status.startsWith('sold:')) {
+    // Mark all paid booking seats as sold
+    for (const booking of paidBookings || []) {
+      for (const seatId of booking.seat_ids || []) {
         seatStatus[seatId] = 'sold';
-      } else if (status.startsWith('locked:')) {
-        const parts = status.split(':');
-        const expiresAt = parseInt(parts[2] || '0');
-        if (expiresAt > now) {
-          seatStatus[seatId] = 'locked';
+      }
+    }
+
+    // Mark pending booking seats as locked (if not older than 15 minutes)
+    const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+    for (const booking of pendingBookings || []) {
+      const createdAt = new Date(booking.created_at).getTime();
+      if (createdAt > fifteenMinutesAgo) {
+        for (const seatId of booking.seat_ids || []) {
+          // Don't override sold status
+          if (!seatStatus[seatId]) {
+            seatStatus[seatId] = 'locked';
+          }
         }
       }
     }
 
-    // Seat status changes via webhooks, must not be cached
-    // Include debug info temporarily
-    return NextResponse.json({
-      seatStatus,
-      _debug: {
-        eventId: id,
-        rawStatusKeys: Object.keys(rawStatus),
-        processedKeys: Object.keys(seatStatus),
-        hasData: !!event?.seat_status,
-      }
-    }, {
+    return NextResponse.json({ seatStatus }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',
       },

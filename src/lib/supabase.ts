@@ -170,31 +170,49 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
   return data as ExtendedDatabaseEvent;
 }
 
-// Process raw seat status to filter out expired locks
-function processRawSeatStatus(rawStatus: Record<string, string>): Record<string, string> {
-  const now = Date.now();
-  const processed: Record<string, string> = {};
+// Build seat status from bookings (source of truth)
+async function getSeatStatusFromBookings(eventId: string, supabaseClient: any): Promise<Record<string, string>> {
+  const seatStatus: Record<string, string> = {};
 
-  for (const [seatId, status] of Object.entries(rawStatus)) {
-    if (typeof status === 'string') {
-      if (status.startsWith('sold:')) {
-        processed[seatId] = 'sold';
-      } else if (status.startsWith('locked:')) {
-        const parts = status.split(':');
-        const expiresAt = parseInt(parts[2] || '0');
-        if (expiresAt > now) {
-          processed[seatId] = 'locked';
+  // Query paid bookings
+  const { data: paidBookings } = await supabaseClient
+    .from('bookings')
+    .select('id, seat_ids')
+    .eq('event_id', eventId)
+    .eq('payment_status', 'paid');
+
+  // Query pending bookings (active checkout sessions)
+  const { data: pendingBookings } = await supabaseClient
+    .from('bookings')
+    .select('id, seat_ids, created_at')
+    .eq('event_id', eventId)
+    .eq('payment_status', 'pending');
+
+  // Mark paid seats as sold
+  for (const booking of paidBookings || []) {
+    for (const seatId of booking.seat_ids || []) {
+      seatStatus[seatId] = 'sold';
+    }
+  }
+
+  // Mark pending seats as locked (if checkout started within 15 minutes)
+  const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+  for (const booking of pendingBookings || []) {
+    const createdAt = new Date(booking.created_at).getTime();
+    if (createdAt > fifteenMinutesAgo) {
+      for (const seatId of booking.seat_ids || []) {
+        if (!seatStatus[seatId]) {
+          seatStatus[seatId] = 'locked';
         }
-        // If expired, don't add to processed (seat is available)
       }
     }
   }
 
-  return processed;
+  return seatStatus;
 }
 
 export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
-  // Use admin client to bypass RLS and ensure seat_status is returned
+  // Use admin client to bypass RLS
   const { supabaseAdmin } = await import('./supabase-admin');
 
   const { data, error } = await supabaseAdmin.client
@@ -208,10 +226,10 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
     throw error;
   }
 
-  const event = data as ExtendedDatabaseEvent & { seat_status?: Record<string, string> };
+  const event = data as ExtendedDatabaseEvent;
 
-  // Process seat status to filter out expired locks
-  const processedSeatStatus = processRawSeatStatus(event.seat_status || {});
+  // Get seat status from bookings (source of truth)
+  const seatStatus = await getSeatStatusFromBookings(id, supabaseAdmin.client);
 
   return {
     id: event.id,
@@ -234,7 +252,7 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
     mapId: event.map_id,
     userId: event.user_id,
     createdAt: event.created_at,
-    seatStatus: processedSeatStatus,
+    seatStatus,
   };
 }
 

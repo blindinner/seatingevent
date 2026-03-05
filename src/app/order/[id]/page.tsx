@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -27,49 +27,27 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pollCount, setPollCount] = useState(0);
 
-  const fetchOrder = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/orders/${orderId}`);
-      if (!res.ok) {
-        if (res.status === 404) {
-          setError('Order not found');
-        } else {
-          setError('Failed to load order');
+  // Fetch order once on mount - payment should already be confirmed
+  useEffect(() => {
+    async function fetchOrder() {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        if (!res.ok) {
+          setError(res.status === 404 ? 'Order not found' : 'Failed to load order');
+          return;
         }
-        return null;
+        const data = await res.json();
+        setOrder(data);
+      } catch {
+        setError('Failed to load order');
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json();
-      setOrder(data);
-      setError(null);
-      return data;
-    } catch {
-      setError('Failed to load order');
-      return null;
-    } finally {
-      setLoading(false);
     }
-  }, [orderId]);
 
-  // Initial fetch
-  useEffect(() => {
     fetchOrder();
-  }, [fetchOrder]);
-
-  // Poll for status updates if pending
-  useEffect(() => {
-    if (!order || order.status !== 'pending' || pollCount >= 30) return;
-
-    const timer = setTimeout(async () => {
-      const updated = await fetchOrder();
-      if (updated?.status === 'pending') {
-        setPollCount(prev => prev + 1);
-      }
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [order, pollCount, fetchOrder]);
+  }, [orderId]);
 
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -111,12 +89,9 @@ export default function OrderConfirmationPage() {
       <main className="max-w-2xl mx-auto px-4 py-8">
         {/* Status Banner */}
         {order.status === 'pending' && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-yellow-400"></div>
-            <div>
-              <p className="text-yellow-400 font-medium">Processing payment...</p>
-              <p className="text-yellow-400/60 text-sm">This usually takes a few seconds</p>
-            </div>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
+            <p className="text-yellow-400 font-medium">Order Pending</p>
+            <p className="text-yellow-400/60 text-sm">If you completed payment, please refresh the page.</p>
           </div>
         )}
 
