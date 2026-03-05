@@ -33,6 +33,7 @@ export default function VerifyTicketPage() {
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [justCheckedIn, setJustCheckedIn] = useState(false);
 
   useEffect(() => {
     async function verifyTicket() {
@@ -65,6 +66,7 @@ export default function VerifyTicketPage() {
 
       if (data.success) {
         // Update local state to show checked in
+        setJustCheckedIn(true);
         setTicketData(prev => prev ? {
           ...prev,
           ticket: prev.ticket ? {
@@ -142,7 +144,41 @@ export default function VerifyTicketPage() {
 
   const { ticket, event } = ticketData;
 
-  // Already checked in
+  // Just checked in successfully (in this session)
+  if (justCheckedIn && ticket?.isCheckedIn) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-8 text-center">
+            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Checked In!</h1>
+            <p className="text-green-400 mb-4">Guest successfully checked in</p>
+            <p className="text-white/60 text-sm mb-6">
+              {ticket.checkedInAt ? formatCheckedInTime(ticket.checkedInAt) : ''}
+            </p>
+
+            <div className="bg-white/5 rounded-xl p-4 text-left mb-4">
+              <p className="text-white font-medium">{ticket.customerName}</p>
+              <p className="text-white/50 text-sm">{ticket.customerEmail}</p>
+              {ticket.seats.length > 0 && (
+                <p className="text-white/50 text-sm mt-2">
+                  Seats: {ticket.seats.join(', ')}
+                </p>
+              )}
+            </div>
+
+            <p className="text-white/40 text-sm font-mono">{ticket.code}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Already checked in (before this session)
   if (ticket?.isCheckedIn) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">

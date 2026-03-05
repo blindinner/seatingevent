@@ -226,7 +226,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     const price = seat.price ?? category?.price ?? 0;
 
     toggleSeat(seat.id, seat.label, categoryId, price);
-  }, [toggleSeat, getCategoryConfig]);
+  }, [toggleSeat, getCategoryConfig, seatStatus]);
 
   // Handle seat hover
   const handleSeatHover = useCallback((
@@ -258,10 +258,18 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     const isUnavailable = seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved' || isSold || isLocked;
 
     let fillColor = getCategoryColor(categoryId);
+    let strokeColor = 'rgba(255,255,255,0.2)';
+    let strokeWidth = 1;
+    let opacity = 1;
+
     if (isSelected) {
       fillColor = '#22C55E'; // Green for selected
+      strokeColor = '#16A34A';
+      strokeWidth = 2;
     } else if (isUnavailable) {
-      fillColor = '#374151'; // Gray for unavailable
+      fillColor = '#1f1f1f'; // Dark gray for unavailable
+      strokeColor = '#444444';
+      opacity = 0.6;
     }
 
     return (
@@ -277,11 +285,34 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
           cy={y}
           r={seat.radius || 12}
           fill={fillColor}
-          stroke={isSelected ? '#16A34A' : 'rgba(255,255,255,0.2)'}
-          strokeWidth={isSelected ? 2 : 1}
-          opacity={isUnavailable ? 0.4 : 1}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          opacity={opacity}
         />
-        {(seat.radius || 12) >= 10 && (
+        {/* X mark for sold/unavailable seats */}
+        {isUnavailable && (
+          <>
+            <line
+              x1={x - (seat.radius || 12) * 0.4}
+              y1={y - (seat.radius || 12) * 0.4}
+              x2={x + (seat.radius || 12) * 0.4}
+              y2={y + (seat.radius || 12) * 0.4}
+              stroke="#666"
+              strokeWidth={1.5}
+              opacity={0.8}
+            />
+            <line
+              x1={x + (seat.radius || 12) * 0.4}
+              y1={y - (seat.radius || 12) * 0.4}
+              x2={x - (seat.radius || 12) * 0.4}
+              y2={y + (seat.radius || 12) * 0.4}
+              stroke="#666"
+              strokeWidth={1.5}
+              opacity={0.8}
+            />
+          </>
+        )}
+        {(seat.radius || 12) >= 10 && !isUnavailable && (
           <text
             x={x}
             y={y}
@@ -291,7 +322,6 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
             fontSize={Math.max(7, (seat.radius || 12) * 0.6)}
             fontWeight="500"
             pointerEvents="none"
-            opacity={isUnavailable ? 0.5 : 1}
           >
             {seat.label.split(/[A-Za-z]+/).pop() || seat.label}
           </text>
@@ -806,8 +836,10 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
           <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>Selected</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className={compact ? 'w-2 h-2 rounded-full bg-gray-600 opacity-50' : 'w-3 h-3 rounded-full bg-gray-600 opacity-50'} />
-          <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>Unavailable</span>
+          <div className={`${compact ? 'w-2 h-2' : 'w-3 h-3'} rounded-full bg-[#1f1f1f] border border-[#444444] relative`}>
+            <div className="absolute inset-0 flex items-center justify-center text-[#666] text-[6px] font-bold">×</div>
+          </div>
+          <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>Sold</span>
         </div>
       </div>
 
