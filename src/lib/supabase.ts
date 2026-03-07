@@ -406,23 +406,24 @@ export async function deleteGuest(id: string) {
   if (error) throw error;
 }
 
-// Real-time subscriptions
+// Real-time subscriptions - watches bookings table (source of truth)
 export function subscribeToEventSeats(
   eventId: string,
-  callback: (payload: { seat_status: Record<string, string> }) => void
+  callback: (payload: { type: 'booking_change'; eventId: string }) => void
 ) {
   return getSupabase()
-    .channel(`event:${eventId}`)
+    .channel(`bookings:${eventId}`)
     .on(
       'postgres_changes',
       {
-        event: 'UPDATE',
+        event: '*', // INSERT, UPDATE, DELETE
         schema: 'public',
-        table: 'events',
-        filter: `id=eq.${eventId}`,
+        table: 'bookings',
+        filter: `event_id=eq.${eventId}`,
       },
-      (payload) => {
-        callback(payload.new as { seat_status: Record<string, string> });
+      () => {
+        // Notify that bookings changed - frontend should refetch
+        callback({ type: 'booking_change', eventId });
       }
     )
     .subscribe();

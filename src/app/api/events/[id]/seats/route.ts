@@ -58,7 +58,7 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ seatStatus }, {
+    return NextResponse.json({ seatStatus, _ts: Date.now(), _count: paidBookings?.length }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
         'Pragma': 'no-cache',

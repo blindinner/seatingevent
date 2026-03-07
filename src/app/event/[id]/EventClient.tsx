@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { PublicEvent } from '@/types/event';
 import type { MapData } from '@/types/map';
@@ -31,72 +31,67 @@ export function EventClient({ event, mapData }: EventClientProps) {
   usePageView(event.id);
 
   // Live seat status - fetched client-side for real-time accuracy
+  // Source of truth: bookings table via /api/events/[id]/seats
   const [liveSeatStatus, setLiveSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
 
-  // Fetch live seat status on mount and subscribe to real-time updates
-  useEffect(() => {
-    async function fetchSeatStatus() {
-      try {
-        const res = await fetch(`/api/events/${event.id}/seats`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          setLiveSeatStatus(data.seatStatus || {});
-        }
-      } catch (error) {
-        console.error('Failed to fetch seat status:', error);
-      }
-    }
+  // Use ref to access current selectedSeats in async callback without triggering re-renders
+  const selectedSeatsRef = useRef(selectedSeats);
+  selectedSeatsRef.current = selectedSeats;
 
-    function processRawSeatStatus(rawStatus: Record<string, string>) {
-      const now = Date.now();
-      const processed: Record<string, string> = {};
-
-      for (const [seatId, status] of Object.entries(rawStatus)) {
-        if (typeof status === 'string') {
-          if (status.startsWith('sold:')) {
-            processed[seatId] = 'sold';
-          } else if (status.startsWith('locked:')) {
-            const parts = status.split(':');
-            const expiresAt = parseInt(parts[2] || '0');
-            if (expiresAt > now) {
-              processed[seatId] = 'locked';
-            }
-          }
-        }
-      }
-      return processed;
-    }
-
-    fetchSeatStatus();
-
-    // Subscribe to real-time updates
-    const channel = subscribeToEventSeats(event.id, (payload) => {
-      if (payload.seat_status) {
-        const processed = processRawSeatStatus(payload.seat_status);
-        setLiveSeatStatus(processed);
+  // Fetch seat status from API (single source of truth)
+  const fetchSeatStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/events/${event.id}/seats`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const newStatus = data.seatStatus || {};
 
         // Deselect any seats that were just sold by someone else
-        for (const [seatId, status] of Object.entries(processed)) {
-          if (status === 'sold') {
+        const currentSelected = selectedSeatsRef.current.map(s => s.seatId);
+        for (const seatId of currentSelected) {
+          if (newStatus[seatId] === 'sold') {
             deselectSeat(seatId);
           }
         }
+
+        setLiveSeatStatus(newStatus);
       }
+    } catch (error) {
+      console.error('Failed to fetch seat status:', error);
+    }
+  }, [event.id, deselectSeat]);
+
+  // Initial fetch + realtime subscription + polling fallback
+  useEffect(() => {
+    // Initial fetch
+    fetchSeatStatus();
+
+    // Subscribe to realtime booking changes (watches bookings table)
+    const channel = subscribeToEventSeats(event.id, () => {
+      // Refetch when any booking changes
+      fetchSeatStatus();
     });
 
-    // Refetch when tab becomes visible (user switches back to this tab)
-    function handleVisibilityChange() {
+    // Polling fallback every 10 seconds (ensures sync even if realtime fails)
+    const pollInterval = setInterval(fetchSeatStatus, 10000);
+
+    // Refetch when tab becomes visible
+    const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         fetchSeatStatus();
       }
-    }
+    };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       channel.unsubscribe();
+      clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [event.id, deselectSeat]);
+  }, [event.id, fetchSeatStatus]);
 
   // Parse date for display
   const parseDateInfo = (dateStr: string) => {

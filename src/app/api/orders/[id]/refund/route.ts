@@ -41,7 +41,7 @@ export async function POST(
     // Fetch the order
     const { data: order, error: orderError } = await supabaseAdmin.client
       .from('bookings')
-      .select('*, events!inner(user_id, seat_status)')
+      .select('*, events!inner(user_id)')
       .eq('id', orderId)
       .single();
 
@@ -121,34 +121,13 @@ export async function POST(
       console.error('Error recording refund transactions:', refundTrackingError);
     }
 
-    // Release the seats
-    const seatIds = order.seat_ids || [];
-    const eventId = order.event_id;
+    // Seats are automatically released because:
+    // - The booking is now 'refunded' status
+    // - The seats API only counts 'paid' bookings as sold
+    // - The seats will show as available on the next API fetch
 
-    if (seatIds.length > 0) {
-      // Fetch fresh seat_status to avoid race conditions
-      const { data: freshEvent } = await supabaseAdmin.client
-        .from('events')
-        .select('seat_status')
-        .eq('id', eventId)
-        .single();
-
-      const currentSeatStatus = (freshEvent?.seat_status || order.events.seat_status || {}) as Record<string, string>;
-      const newSeatStatus = { ...currentSeatStatus };
-
-      // Remove sold status for refunded seats
-      for (const seatId of seatIds) {
-        delete newSeatStatus[seatId];
-      }
-
-      await supabaseAdmin.client
-        .from('events')
-        .update({ seat_status: newSeatStatus })
-        .eq('id', eventId);
-
-      // Invalidate page cache
-      revalidatePath(`/event/${eventId}`);
-    }
+    // Invalidate page cache so the event page shows updated availability
+    revalidatePath(`/event/${order.event_id}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

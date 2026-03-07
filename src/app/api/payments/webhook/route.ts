@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { verifyWebhookSignature, type WebhookPayload } from '@/lib/payments';
 import { updateOrderByPaymentId, getOrderByPaymentId } from '@/lib/orders';
-import { reserveSeatsForOrder, releaseSeats } from '@/lib/seats';
 import { sendTicketEmail, sendOwnerNotificationEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
@@ -118,12 +117,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Reserve the seats in the event
-      if (order && eventId && seatIds.length > 0) {
-        await reserveSeatsForOrder(eventId, seatIds, order.id);
-        console.log('Seats reserved for order:', order.id);
-
-        // Invalidate the event page cache so seat status is fresh
+      // Seats are now marked as sold automatically because:
+      // - The booking payment_status is 'paid'
+      // - The seats API reads from bookings table as single source of truth
+      // Just invalidate the cache so the event page shows updated availability
+      if (eventId) {
         revalidatePath(`/event/${eventId}`);
         console.log('Cache invalidated for event:', eventId);
       }

@@ -52,6 +52,18 @@ export default function DashboardPage() {
           return;
         }
 
+        // Fetch live seat status from API (single source of truth)
+        let seatStatus: Record<string, string> = {};
+        try {
+          const seatRes = await fetch(`/api/events/${eventId}/seats`, { cache: 'no-store' });
+          if (seatRes.ok) {
+            const seatData = await seatRes.json();
+            seatStatus = seatData.seatStatus || {};
+          }
+        } catch (e) {
+          console.error('Error fetching seat status:', e);
+        }
+
         // Transform to PublicEvent format
         const publicEvent: PublicEvent = {
           id: eventData.id,
@@ -74,7 +86,7 @@ export default function DashboardPage() {
           mapId: eventData.map_id,
           userId: eventData.user_id,
           createdAt: eventData.created_at,
-          seatStatus: eventData.seat_status || {},
+          seatStatus,
         };
         setEvent(publicEvent);
 
