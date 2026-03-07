@@ -38,6 +38,7 @@ export interface CreateEventInput {
 
 export interface PublicEvent {
   id: string;
+  shortId: string | null;
   name: string;
   description: string | null;
   startDate: string;

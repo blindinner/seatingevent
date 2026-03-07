@@ -64,7 +64,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
     }
   }, [event.id, deselectSeat]);
 
-  // Initial fetch + realtime subscription + polling fallback
+  // Initial fetch + realtime subscription + smart polling
   useEffect(() => {
     // Initial fetch
     fetchSeatStatus();
@@ -75,20 +75,41 @@ export function EventClient({ event, mapData }: EventClientProps) {
       fetchSeatStatus();
     });
 
-    // Polling fallback every 10 seconds (ensures sync even if realtime fails)
-    const pollInterval = setInterval(fetchSeatStatus, 10000);
+    // Smart polling: only poll when tab is visible (saves API calls/costs)
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    // Refetch when tab becomes visible
+    const startPolling = () => {
+      if (!pollInterval) {
+        pollInterval = setInterval(fetchSeatStatus, 30000);
+      }
+    };
+
+    const stopPolling = () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    };
+
+    // Start polling only if tab is currently visible
+    if (document.visibilityState === 'visible') {
+      startPolling();
+    }
+
+    // Handle tab visibility changes
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchSeatStatus();
+        fetchSeatStatus(); // Immediate refresh when coming back
+        startPolling();    // Resume polling
+      } else {
+        stopPolling();     // Stop polling when tab hidden
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       channel.unsubscribe();
-      clearInterval(pollInterval);
+      stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [event.id, fetchSeatStatus]);

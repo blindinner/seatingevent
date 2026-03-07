@@ -1155,8 +1155,8 @@ export default function CreateEvent() {
         requireApproval,
       });
 
-      // 4. Redirect to event page
-      router.push(`/event/${newEvent.id}`);
+      // 4. Redirect to event page using short_id for nicer URLs
+      router.push(`/event/${newEvent.short_id || newEvent.id}`);
     } catch (error) {
       console.error('Failed to create event:', error);
       setSubmitError(error instanceof Error ? error.message : 'Failed to create event');

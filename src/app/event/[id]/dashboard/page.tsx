@@ -67,6 +67,7 @@ export default function DashboardPage() {
         // Transform to PublicEvent format
         const publicEvent: PublicEvent = {
           id: eventData.id,
+          shortId: eventData.short_id,
           name: eventData.name,
           description: eventData.description,
           startDate: eventData.start_date,

@@ -58,6 +58,7 @@ function DeleteModal({ isOpen, eventName, onConfirm, onCancel, isDeleting }: Del
 
 interface UserEvent {
   id: string;
+  short_id: string | null;
   name: string;
   description: string | null;
   start_date: string;
@@ -289,7 +290,7 @@ export default function MyEventsPage() {
                   <div className="flex flex-col md:flex-row">
                     {/* Cover Image */}
                     <div className="md:w-48 lg:w-56 flex-shrink-0">
-                      <Link href={`/event/${event.id}`} className="block aspect-[16/9] md:aspect-square relative overflow-hidden bg-white/[0.02]">
+                      <Link href={`/event/${event.short_id || event.id}`} className="block aspect-[16/9] md:aspect-square relative overflow-hidden bg-white/[0.02]">
                         {event.cover_image_url ? (
                           <img
                             src={event.cover_image_url}
@@ -326,7 +327,7 @@ export default function MyEventsPage() {
                       {/* Top: Name, Date, Type */}
                       <div className="flex-1">
                         <div className="flex items-start justify-between gap-4 mb-2">
-                          <Link href={`/event/${event.id}`} className="group">
+                          <Link href={`/event/${event.short_id || event.id}`} className="group">
                             <h3 className="text-lg font-semibold text-white group-hover:text-white/80 transition-colors line-clamp-1">
                               {event.name}
                             </h3>
@@ -394,7 +395,7 @@ export default function MyEventsPage() {
                           Dashboard
                         </Link>
                         <Link
-                          href={`/event/${event.id}`}
+                          href={`/event/${event.short_id || event.id}`}
                           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

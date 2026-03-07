@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { nanoid } from 'nanoid';
 import type { DatabaseMap, DatabaseEvent, DatabaseGuest, MapData } from '@/types/map';
 import type { CreateEventInput, PublicEvent } from '@/types/event';
 
@@ -117,6 +118,7 @@ export async function createEvent(event: Omit<DatabaseEvent, 'id' | 'created_at'
 // Extended event type for Luma-seated events (includes all new fields)
 export interface ExtendedDatabaseEvent {
   id: string;
+  short_id: string | null;
   map_id: string | null;
   user_id: string;
   name: string;
@@ -140,9 +142,13 @@ export interface ExtendedDatabaseEvent {
 }
 
 export async function createExtendedEvent(input: CreateEventInput): Promise<ExtendedDatabaseEvent> {
+  // Generate a short, URL-friendly ID (10 chars)
+  const shortId = nanoid(10);
+
   const { data, error } = await getSupabase()
     .from('events')
     .insert({
+      short_id: shortId,
       map_id: input.mapId || null,
       user_id: input.userId,
       name: input.name,
@@ -211,15 +217,30 @@ async function getSeatStatusFromBookings(eventId: string, supabaseClient: any): 
   return seatStatus;
 }
 
-export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
+export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent | null> {
   // Use admin client to bypass RLS
   const { supabaseAdmin } = await import('./supabase-admin');
 
-  const { data, error } = await supabaseAdmin.client
-    .from('events')
-    .select('*')
-    .eq('id', id)
-    .single();
+  // Check if the input looks like a UUID (36 chars with hyphens)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrShortId);
+
+  let data, error;
+
+  if (isUuid) {
+    // If it's a UUID, search by id first, fallback to short_id
+    ({ data, error } = await supabaseAdmin.client
+      .from('events')
+      .select('*')
+      .or(`id.eq.${idOrShortId},short_id.eq.${idOrShortId}`)
+      .single());
+  } else {
+    // If it's not a UUID, only search by short_id
+    ({ data, error } = await supabaseAdmin.client
+      .from('events')
+      .select('*')
+      .eq('short_id', idOrShortId)
+      .single());
+  }
 
   if (error) {
     if (error.code === 'PGRST116') return null; // Not found
@@ -228,11 +249,12 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
 
   const event = data as ExtendedDatabaseEvent;
 
-  // Get seat status from bookings (source of truth)
-  const seatStatus = await getSeatStatusFromBookings(id, supabaseAdmin.client);
+  // Get seat status from bookings (source of truth) - use the actual UUID id
+  const seatStatus = await getSeatStatusFromBookings(event.id, supabaseAdmin.client);
 
   return {
     id: event.id,
+    shortId: event.short_id,
     name: event.name,
     description: event.description,
     startDate: event.start_date,
