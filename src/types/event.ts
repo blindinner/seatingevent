@@ -32,6 +32,7 @@ export interface CreateEventInput {
   themeColor?: string;
   themeFont?: string;
   requireApproval: boolean;
+  sendQrCode?: boolean; // Whether to include QR code in confirmation emails (free events only)
   mapId?: string;
   userId: string;
 }
@@ -55,6 +56,7 @@ export interface PublicEvent {
   themeColor: string | null;
   themeFont: string | null;
   requireApproval: boolean;
+  sendQrCode: boolean; // Whether to include QR code in confirmation emails (free events only)
   mapId: string | null;
   userId: string;
   createdAt: string;

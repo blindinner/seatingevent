@@ -84,6 +84,7 @@ export default function DashboardPage() {
           themeColor: eventData.theme_color,
           themeFont: eventData.theme_font,
           requireApproval: eventData.require_approval,
+          sendQrCode: eventData.send_qr_code !== false,
           mapId: eventData.map_id,
           userId: eventData.user_id,
           createdAt: eventData.created_at,

@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       // Fetch event details for email
       const { data: eventData } = await supabaseAdmin.client
         .from('events')
-        .select('name, start_date, start_time, location, email_settings')
+        .select('name, start_date, start_time, location, email_settings, send_qr_code')
         .eq('id', eventId)
         .single();
 
@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
             totalAmount: 0,
             currency,
             emailSettings: eventData.email_settings || undefined,
+            sendQrCode: eventData.send_qr_code !== false, // Default to true
           });
           console.log('Confirmation email sent for free registration');
         } catch (emailError) {

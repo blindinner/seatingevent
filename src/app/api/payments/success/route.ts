@@ -68,7 +68,8 @@ async function sendEmailsInBackground(orderId: string) {
           start_date,
           start_time,
           location,
-          user_id
+          user_id,
+          send_qr_code
         )
       `)
       .eq('id', orderId)
@@ -83,6 +84,7 @@ async function sendEmailsInBackground(orderId: string) {
       start_time: string | null;
       location: string | null;
       user_id: string;
+      send_qr_code: boolean;
     };
     const seats = (booking.metadata?.seats as Array<{ label: string; category: string }>) || [];
 
@@ -99,6 +101,7 @@ async function sendEmailsInBackground(orderId: string) {
         ticketCode: booking.ticket_code,
         totalAmount: booking.amount_paid,
         currency: booking.currency,
+        sendQrCode: event.send_qr_code !== false,
       }).catch(err => console.error('Failed to send ticket email:', err));
     }
 

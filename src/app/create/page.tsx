@@ -1029,8 +1029,12 @@ export default function CreateEvent() {
     { id: nanoid(), name: 'General Admission', price: 0, quantity: -1 }
   ]);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [sendQrCode, setSendQrCode] = useState(true); // Whether to include QR code in confirmation emails
   const [seatMapModalOpen, setSeatMapModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+
+  // Check if the event is free (all ticket prices are 0)
+  const isFreeEvent = eventType === 'ga' && ticketTiers.every(tier => tier.price === 0);
 
   // Access map store for seated events
   const { map, updateCategory, addCategory, deleteCategory } = useMapStore();
@@ -1154,6 +1158,7 @@ export default function CreateEvent() {
         themeColor: selectedColor.bg,
         themeFont: selectedFont.id,
         requireApproval,
+        sendQrCode: isFreeEvent ? sendQrCode : true, // Only applies to free events
       });
 
       // 4. Redirect to event page using short_id for nicer URLs
@@ -1682,6 +1687,33 @@ export default function CreateEvent() {
                     }`} />
                   </button>
                 </div>
+
+                {/* Send QR Code - Only show for free events */}
+                {isFreeEvent && (
+                  <div className="flex items-center justify-between px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                      </svg>
+                      <div>
+                        <span className="text-[14px] text-white/70">Include QR code</span>
+                        <p className="text-[12px] text-white/40">Send QR code in confirmation email</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSendQrCode(!sendQrCode)}
+                      className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${
+                        sendQrCode ? 'bg-white' : 'bg-white/10'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${
+                        sendQrCode ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
+                      }`} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Create Button */}

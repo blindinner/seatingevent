@@ -146,6 +146,7 @@ export interface TicketEmailData {
   totalAmount: number;
   currency: string;
   emailSettings?: EmailSettings;
+  sendQrCode?: boolean; // Whether to include QR code in email (default true)
 }
 
 export async function sendTicketEmail(data: TicketEmailData): Promise<{ success: boolean; error?: string }> {
@@ -178,6 +179,9 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
   // Build verification URL for QR code
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seatingevent-j3ip.vercel.app';
   const verifyUrl = `${baseUrl}/verify/${data.ticketCode}`;
+
+  // Check if QR code should be included (default to true)
+  const includeQrCode = data.sendQrCode !== false;
 
   // Apply custom email settings with defaults
   const settings = data.emailSettings || {};
@@ -256,13 +260,14 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
                     </td>
                   </tr>
 
-                  <!-- Ticket Code with QR -->
+                  <!-- Ticket Code with optional QR -->
                   <tr>
                     <td style="padding: 0 32px 24px;">
                       <div style="background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 24px; text-align: center;">
                         <p style="margin: 0 0 16px; color: rgba(255,255,255,0.6); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
                           Your Ticket
                         </p>
+                        ${includeQrCode ? `
                         <!-- QR Code - links to verification page -->
                         <img
                           src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&bgcolor=18181b&color=ffffff&data=${encodeURIComponent(verifyUrl)}"
@@ -271,13 +276,20 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
                           height="180"
                           style="display: block; margin: 0 auto 16px; border-radius: 8px;"
                         />
+                        ` : ''}
                         <!-- Ticket Code -->
                         <p style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: 4px; font-family: monospace;">
                           ${data.ticketCode}
                         </p>
+                        ${includeQrCode ? `
                         <p style="margin: 12px 0 0; color: rgba(255,255,255,0.4); font-size: 12px;">
                           Scan QR code at entrance for check-in
                         </p>
+                        ` : `
+                        <p style="margin: 12px 0 0; color: rgba(255,255,255,0.4); font-size: 12px;">
+                          Present this code at the event
+                        </p>
+                        `}
                       </div>
                     </td>
                   </tr>

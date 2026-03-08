@@ -137,6 +137,7 @@ export interface ExtendedDatabaseEvent {
   theme_color: string | null;
   theme_font: string | null;
   require_approval: boolean;
+  send_qr_code: boolean;
   seat_status: Record<string, string>;
   created_at: string;
 }
@@ -167,6 +168,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       theme_color: input.themeColor || null,
       theme_font: input.themeFont || null,
       require_approval: input.requireApproval,
+      send_qr_code: input.sendQrCode !== false, // Default to true
       seat_status: {},
     })
     .select()
@@ -271,6 +273,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     themeColor: event.theme_color,
     themeFont: event.theme_font,
     requireApproval: event.require_approval,
+    sendQrCode: event.send_qr_code !== false, // Default to true for backwards compatibility
     mapId: event.map_id,
     userId: event.user_id,
     createdAt: event.created_at,

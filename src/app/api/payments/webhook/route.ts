@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
           // Fetch event details with owner info and email settings
           const { data: event } = await supabaseAdmin.client
             .from('events')
-            .select('name, start_date, start_time, location, user_id, email_settings')
+            .select('name, start_date, start_time, location, user_id, email_settings, send_qr_code')
             .eq('id', eventId)
             .single();
 
@@ -156,6 +156,7 @@ export async function POST(request: NextRequest) {
               totalAmount: order.totalAmount,
               currency: order.currency,
               emailSettings: event.email_settings || undefined,
+              sendQrCode: event.send_qr_code !== false,
             });
 
             if (emailResult.success) {
