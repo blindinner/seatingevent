@@ -9,6 +9,13 @@ export interface OrderSeat {
   price: number;
 }
 
+export interface OrderTicket {
+  tierId: string;
+  tierName: string;
+  quantity: number;
+  price: number;
+}
+
 export interface Order {
   id: string;
   eventId: string;
@@ -35,10 +42,11 @@ export interface CreateOrderInput {
   customerLastName: string;
   customerEmail: string;
   customerPhone: string;
-  seats: OrderSeat[];
+  seats?: OrderSeat[];
+  tickets?: OrderTicket[];
   totalAmount: number; // in cents (smallest currency unit)
   currency: string;
-  status: 'pending';
+  status: 'pending' | 'paid';
 }
 
 export interface UpdateOrderInput {
@@ -74,16 +82,28 @@ function generateTicketCode(): string {
  */
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const customerName = `${input.customerFirstName} ${input.customerLastName}`;
-  const seatIds = input.seats.map(s => s.seatId);
+  const seats = input.seats || [];
+  const tickets = input.tickets || [];
+  const seatIds = seats.map(s => s.seatId);
 
   // Convert from cents to dollars for storage
   const amountInDollars = input.totalAmount / 100;
 
   // Also convert seat prices to dollars for consistency
-  const seatsWithDollarPrices = input.seats.map(seat => ({
+  const seatsWithDollarPrices = seats.map(seat => ({
     ...seat,
     price: seat.price / 100,
   }));
+
+  // Convert ticket prices to dollars
+  const ticketsWithDollarPrices = tickets.map(ticket => ({
+    ...ticket,
+    price: ticket.price / 100,
+  }));
+
+  // Calculate total ticket count
+  const ticketCount = tickets.reduce((sum, t) => sum + t.quantity, 0);
+  const totalItemCount = seatIds.length + ticketCount;
 
   const { data, error } = await supabaseAdmin.client
     .from('bookings')
@@ -92,13 +112,15 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       customer_name: customerName,
       customer_email: input.customerEmail,
       customer_phone: input.customerPhone,
-      seat_ids: seatIds,
-      seat_count: seatIds.length,
+      seat_ids: seatIds.length > 0 ? seatIds : [], // Empty array for GA events
+      seat_count: totalItemCount,
       amount_paid: amountInDollars,
       currency: input.currency,
       payment_status: input.status,
+      ticket_code: input.status === 'paid' ? generateTicketCode() : null,
       metadata: {
-        seats: seatsWithDollarPrices, // Store seat details with prices in dollars
+        seats: seatsWithDollarPrices,
+        tickets: ticketsWithDollarPrices,
       },
     })
     .select()

@@ -48,8 +48,24 @@ interface EventClientProps {
 export function EventClient({ event, mapData }: EventClientProps) {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const { selectedSeats, getTotalPrice, clearSelection, deselectSeat } = useSeatSelectionStore();
+  const {
+    selectedSeats,
+    selectedTickets,
+    getTotalPrice,
+    getTotalTickets,
+    clearSelection,
+    clearTickets,
+    deselectSeat
+  } = useSeatSelectionStore();
   const { user } = useAuth();
+
+  // Determine if user has selected something (seats or GA tickets)
+  const hasSelection = event.eventType === 'seated'
+    ? selectedSeats.length > 0
+    : getTotalTickets() > 0;
+
+  const totalPrice = getTotalPrice();
+  const isFreeEvent = totalPrice === 0 && hasSelection;
 
   // Check if current user is the event owner
   const isOwner = user?.id === event.userId;
@@ -60,6 +76,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
   // Live seat status - fetched client-side for real-time accuracy
   // Source of truth: bookings table via /api/events/[id]/seats
   const [liveSeatStatus, setLiveSeatStatus] = useState<Record<string, string>>(event.seatStatus || {});
+
+  // Live ticket availability for GA events
+  const [ticketTiers, setTicketTiers] = useState(event.ticketTiers || []);
 
   // Use ref to access current selectedSeats in async callback without triggering re-renders
   const selectedSeatsRef = useRef(selectedSeats);
@@ -91,15 +110,35 @@ export function EventClient({ event, mapData }: EventClientProps) {
     }
   }, [event.id, deselectSeat]);
 
+  // Fetch ticket availability for GA events
+  const fetchTicketAvailability = useCallback(async () => {
+    if (event.eventType !== 'ga') return;
+
+    try {
+      const res = await fetch(`/api/events/${event.id}/tickets`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTicketTiers(data.tiers || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch ticket availability:', error);
+    }
+  }, [event.id, event.eventType]);
+
   // Initial fetch + realtime subscription + smart polling
   useEffect(() => {
     // Initial fetch
     fetchSeatStatus();
+    fetchTicketAvailability();
 
     // Subscribe to realtime booking changes (watches bookings table)
     const channel = subscribeToEventSeats(event.id, () => {
       // Refetch when any booking changes
       fetchSeatStatus();
+      fetchTicketAvailability();
     });
 
     // Smart polling: only poll when tab is visible (saves API calls/costs)
@@ -107,7 +146,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
     const startPolling = () => {
       if (!pollInterval) {
-        pollInterval = setInterval(fetchSeatStatus, 30000);
+        pollInterval = setInterval(() => {
+          fetchSeatStatus();
+          fetchTicketAvailability();
+        }, 30000);
       }
     };
 
@@ -127,6 +169,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         fetchSeatStatus(); // Immediate refresh when coming back
+        fetchTicketAvailability();
         startPolling();    // Resume polling
       } else {
         stopPolling();     // Stop polling when tab hidden
@@ -139,7 +182,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
       stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [event.id, fetchSeatStatus]);
+  }, [event.id, fetchSeatStatus, fetchTicketAvailability]);
 
   // Parse date for display
   const parseDateInfo = (dateStr: string) => {
@@ -171,14 +214,15 @@ export function EventClient({ event, mapData }: EventClientProps) {
   const fontClass = themeFont === 'serif' ? 'font-serif' : themeFont === 'mono' ? 'font-mono' : 'font-sans';
 
   const handleGetTickets = () => {
-    if (selectedSeats.length > 0) {
+    if (hasSelection) {
       setCheckoutModalOpen(true);
     }
   };
 
   const handlePaymentSuccess = () => {
-    // Clear the seat selection after successful payment
+    // Clear the selection after successful payment/registration
     clearSelection();
+    clearTickets();
   };
 
   return (
@@ -209,17 +253,20 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 Dashboard
               </Link>
             )}
-            {/* Show selection summary in nav when seats selected */}
-            {selectedSeats.length > 0 && (
+            {/* Show selection summary in nav when seats/tickets selected */}
+            {hasSelection && (
               <>
                 <span className="hidden sm:inline text-[14px] text-white/60">
-                  {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} · {formatCurrency(getTotalPrice(), event.currency)}
+                  {event.eventType === 'seated'
+                    ? `${selectedSeats.length} seat${selectedSeats.length !== 1 ? 's' : ''}`
+                    : `${getTotalTickets()} ticket${getTotalTickets() !== 1 ? 's' : ''}`
+                  } · {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
                 </span>
                 <button
                   onClick={handleGetTickets}
                   className="h-10 px-6 text-[14px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
                 >
-                  Get Tickets
+                  {isFreeEvent ? 'Register' : 'Get Tickets'}
                 </button>
               </>
             )}
@@ -377,7 +424,29 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   <p className="text-[15px] text-white/70">Select your tickets</p>
                 </div>
                 <div className="p-6">
-                  <TicketSelector tiers={event.ticketTiers} currency={event.currency} />
+                  <TicketSelector tiers={ticketTiers} currency={event.currency} />
+
+                  {/* Get Tickets button - appears when tickets selected */}
+                  {getTotalTickets() > 0 && (
+                    <div className="mt-6 pt-6 border-t border-white/[0.06]">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-[14px] text-white/60">
+                            {getTotalTickets()} ticket{getTotalTickets() !== 1 ? 's' : ''} selected
+                          </p>
+                          <p className="text-[20px] font-semibold text-white">
+                            {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleGetTickets}
+                        className="w-full py-4 text-[16px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
+                      >
+                        {isFreeEvent ? 'Register' : 'Get Tickets'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -399,10 +468,17 @@ export function EventClient({ event, mapData }: EventClientProps) {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/10 p-4">
         <div className="flex items-center justify-between">
           <div>
-            {selectedSeats.length > 0 ? (
+            {hasSelection ? (
               <>
-                <p className="text-[12px] text-white/50">{selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} selected</p>
-                <p className="text-[16px] font-semibold text-white">{formatCurrency(getTotalPrice(), event.currency)}</p>
+                <p className="text-[12px] text-white/50">
+                  {event.eventType === 'seated'
+                    ? `${selectedSeats.length} seat${selectedSeats.length !== 1 ? 's' : ''} selected`
+                    : `${getTotalTickets()} ticket${getTotalTickets() !== 1 ? 's' : ''} selected`
+                  }
+                </p>
+                <p className="text-[16px] font-semibold text-white">
+                  {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
+                </p>
               </>
             ) : (
               <p className="text-[14px] text-white/70">
@@ -412,10 +488,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
           </div>
           <button
             onClick={handleGetTickets}
-            disabled={event.eventType === 'seated' && selectedSeats.length === 0}
+            disabled={!hasSelection}
             className="h-11 px-6 text-[14px] font-semibold rounded-full transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Get Tickets
+            {isFreeEvent ? 'Register' : 'Get Tickets'}
           </button>
         </div>
       </div>
@@ -432,7 +508,8 @@ export function EventClient({ event, mapData }: EventClientProps) {
         eventDate={startDateInfo.fullDate}
         eventTime={startTimeStr}
         selectedSeats={selectedSeats}
-        totalPrice={getTotalPrice()}
+        selectedTickets={selectedTickets}
+        totalPrice={totalPrice}
         currency={event.currency}
         themeColor={themeColor}
         onSuccess={handlePaymentSuccess}

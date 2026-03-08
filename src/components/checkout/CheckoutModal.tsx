@@ -12,6 +12,13 @@ interface SelectedSeat {
   price: number;
 }
 
+interface SelectedTicket {
+  tierId: string;
+  tierName: string;
+  quantity: number;
+  price: number;
+}
+
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,6 +27,7 @@ interface CheckoutModalProps {
   eventDate: string;
   eventTime: string;
   selectedSeats: SelectedSeat[];
+  selectedTickets?: SelectedTicket[];
   totalPrice: number;
   currency: string;
   themeColor: string;
@@ -57,12 +65,18 @@ export function CheckoutModal({
   eventDate,
   eventTime,
   selectedSeats,
+  selectedTickets = [],
   totalPrice,
   currency,
   themeColor,
   onSuccess,
   error: externalError,
 }: CheckoutModalProps) {
+  const isFreeEvent = totalPrice === 0;
+  const isGAEvent = selectedTickets.length > 0;
+  const totalItems = isGAEvent
+    ? selectedTickets.reduce((sum, t) => sum + t.quantity, 0)
+    : selectedSeats.length;
   const [step, setStep] = useState<CheckoutStep>('info');
   const [formData, setFormData] = useState<CustomerInfo>({
     firstName: '',
@@ -180,7 +194,46 @@ export function CheckoutModal({
     setPaymentError(null);
 
     try {
-      // Create the payment and get the payment URL
+      // For free events, register directly without payment
+      if (isFreeEvent) {
+        const response = await fetch('/api/payments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId,
+            eventName,
+            selectedSeats: selectedSeats.map(seat => ({
+              seatId: seat.seatId,
+              label: seat.label,
+              category: seat.category,
+              price: seat.price,
+            })),
+            selectedTickets: selectedTickets.map(ticket => ({
+              tierId: ticket.tierId,
+              tierName: ticket.tierName,
+              quantity: ticket.quantity,
+              price: ticket.price,
+            })),
+            customer: formData,
+            currency,
+            isFreeRegistration: true,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setPaymentError(data.error || 'Failed to register');
+          return;
+        }
+
+        // Skip payment step, go directly to success
+        setStep('success');
+        onSuccess?.();
+        return;
+      }
+
+      // Paid event - create payment
       const response = await fetch('/api/payments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -192,6 +245,12 @@ export function CheckoutModal({
             label: seat.label,
             category: seat.category,
             price: seat.price,
+          })),
+          selectedTickets: selectedTickets.map(ticket => ({
+            tierId: ticket.tierId,
+            tierName: ticket.tierName,
+            quantity: ticket.quantity,
+            price: ticket.price,
           })),
           customer: formData,
           currency,
@@ -304,25 +363,43 @@ export function CheckoutModal({
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-[15px] text-white font-medium">{selectedSeats.length} Ticket{selectedSeats.length !== 1 ? 's' : ''}</p>
+                      <p className="text-[15px] text-white font-medium">{totalItems} Ticket{totalItems !== 1 ? 's' : ''}</p>
                       <p className="text-[13px] text-white/50">{eventDate} · {eventTime}</p>
                     </div>
                   </div>
 
-                  {/* Seat list */}
-                  <div className="space-y-2 mb-4">
-                    {selectedSeats.map((seat) => (
-                      <div key={seat.seatId} className="flex justify-between text-[14px]">
-                        <span className="text-white/70">{seat.label}</span>
-                        <span className="text-white/50">{formatCurrency(seat.price, currency)}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Seat list (for seated events) */}
+                  {selectedSeats.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {selectedSeats.map((seat) => (
+                        <div key={seat.seatId} className="flex justify-between text-[14px]">
+                          <span className="text-white/70">{seat.label}</span>
+                          <span className="text-white/50">{formatCurrency(seat.price, currency)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Ticket list (for GA events) */}
+                  {selectedTickets.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {selectedTickets.map((ticket) => (
+                        <div key={ticket.tierId} className="flex justify-between text-[14px]">
+                          <span className="text-white/70">{ticket.tierName} × {ticket.quantity}</span>
+                          <span className="text-white/50">
+                            {ticket.price === 0 ? 'Free' : formatCurrency(ticket.price * ticket.quantity, currency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Total */}
                   <div className="flex justify-between pt-4 border-t border-white/[0.06]">
                     <span className="text-[16px] font-semibold text-white">Total</span>
-                    <span className="text-[16px] font-semibold text-white">{formatCurrency(totalPrice, currency)}</span>
+                    <span className="text-[16px] font-semibold text-white">
+                      {isFreeEvent ? 'Free' : formatCurrency(totalPrice, currency)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -427,8 +504,10 @@ export function CheckoutModal({
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Processing...
+                      {isFreeEvent ? 'Registering...' : 'Processing...'}
                     </span>
+                  ) : isFreeEvent ? (
+                    'Complete Registration'
                   ) : (
                     `Continue to Payment · ${formatCurrency(totalPrice, currency)}`
                   )}

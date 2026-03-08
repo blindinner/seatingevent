@@ -4,16 +4,29 @@ import { createPayment, type PaymentItem } from '@/lib/payments/allpay';
 import { getAllPayConfig, isTestMode, getBaseUrl } from '@/lib/payments';
 import { lockSeats } from '@/lib/seats';
 import { fromSmallestUnit } from '@/lib/currency';
+import { sendTicketEmail } from '@/lib/email';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('Payment request body:', JSON.stringify(body, null, 2));
 
-    const { eventId, eventName, selectedSeats, customer, currency } = body;
+    const {
+      eventId,
+      eventName,
+      selectedSeats = [],
+      selectedTickets = [],
+      customer,
+      currency,
+      isFreeRegistration
+    } = body;
 
     // Validate required fields
-    if (!eventId || !eventName || !selectedSeats?.length || !customer || !currency) {
+    const hasSeats = selectedSeats?.length > 0;
+    const hasTickets = selectedTickets?.length > 0;
+
+    if (!eventId || !eventName || (!hasSeats && !hasTickets) || !customer || !currency) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -28,38 +41,111 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate total - selectedSeats prices are in cents (smallest currency unit)
-    const totalAmount = selectedSeats.reduce(
+    // Calculate total - prices are in cents (smallest currency unit)
+    const seatsTotal = selectedSeats.reduce(
       (sum: number, seat: { price: number }) => sum + seat.price,
       0
     );
+    const ticketsTotal = selectedTickets.reduce(
+      (sum: number, ticket: { price: number; quantity: number }) => sum + (ticket.price * ticket.quantity),
+      0
+    );
+    const totalAmount = seatsTotal + ticketsTotal;
     console.log('Total amount:', totalAmount);
 
-    // Try to lock seats to prevent double booking
+    // For seated events, lock the seats to prevent double booking
     const seatIds = selectedSeats.map((s: { seatId: string }) => s.seatId);
-    const lockId = `lock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    console.log('Locking seats:', seatIds);
+    let lockResult = { success: true, unavailableSeats: [] as string[] };
 
-    let lockResult;
-    try {
-      lockResult = await lockSeats(eventId, seatIds, lockId, 15 * 60 * 1000); // 15 min lock
-      console.log('Lock result:', lockResult);
-    } catch (lockError) {
-      console.error('Lock seats error:', lockError);
-      throw lockError;
+    if (seatIds.length > 0) {
+      const lockId = `lock_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      console.log('Locking seats:', seatIds);
+
+      try {
+        lockResult = await lockSeats(eventId, seatIds, lockId, 15 * 60 * 1000); // 15 min lock
+        console.log('Lock result:', lockResult);
+      } catch (lockError) {
+        console.error('Lock seats error:', lockError);
+        throw lockError;
+      }
+
+      if (!lockResult.success) {
+        return NextResponse.json(
+          {
+            error: 'Some seats are no longer available',
+            unavailableSeats: lockResult.unavailableSeats,
+          },
+          { status: 409 }
+        );
+      }
     }
 
-    if (!lockResult.success) {
-      return NextResponse.json(
-        {
-          error: 'Some seats are no longer available',
-          unavailableSeats: lockResult.unavailableSeats,
-        },
-        { status: 409 }
-      );
+    // Handle free registration - no payment needed
+    if (isFreeRegistration && totalAmount === 0) {
+      console.log('Processing free registration...');
+
+      // Create the order directly as paid
+      const order = await createOrder({
+        eventId,
+        customerFirstName: customer.firstName,
+        customerLastName: customer.lastName,
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
+        seats: selectedSeats,
+        tickets: selectedTickets,
+        totalAmount: 0,
+        currency,
+        status: 'paid', // Mark as paid immediately for free events
+      });
+      console.log('Free registration order created:', order.id);
+
+      // Fetch event details for email
+      const { data: eventData } = await supabaseAdmin.client
+        .from('events')
+        .select('name, start_date, start_time, location, email_settings')
+        .eq('id', eventId)
+        .single();
+
+      // Send confirmation email
+      if (eventData && customer.email && order.ticketCode) {
+        const seatDetails = selectedSeats.map((s: { label: string; category: string }) => ({
+          label: s.label,
+          category: s.category,
+        }));
+        const ticketDetails = selectedTickets.map((t: { tierName: string; quantity: number }) => ({
+          label: `${t.tierName} × ${t.quantity}`,
+          category: 'General Admission',
+        }));
+
+        try {
+          await sendTicketEmail({
+            to: customer.email,
+            customerName: `${customer.firstName} ${customer.lastName}`,
+            eventName: eventData.name,
+            eventDate: eventData.start_date,
+            eventTime: eventData.start_time || undefined,
+            eventLocation: eventData.location || undefined,
+            ticketCode: order.ticketCode,
+            seats: [...seatDetails, ...ticketDetails],
+            totalAmount: 0,
+            currency,
+            emailSettings: eventData.email_settings || undefined,
+          });
+          console.log('Confirmation email sent for free registration');
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+          // Don't fail the registration if email fails
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        isFreeRegistration: true,
+      });
     }
 
-    // Create the order in database
+    // Create the order in database for paid events
     console.log('Creating order...');
     let order;
     try {
@@ -70,6 +156,7 @@ export async function POST(request: NextRequest) {
         customerEmail: customer.email,
         customerPhone: customer.phone,
         seats: selectedSeats,
+        tickets: selectedTickets,
         totalAmount,
         currency,
         status: 'pending',

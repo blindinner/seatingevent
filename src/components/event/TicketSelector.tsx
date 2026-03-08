@@ -4,8 +4,13 @@ import type { TicketTier } from '@/types/event';
 import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
 
+interface TierWithAvailability extends TicketTier {
+  remaining?: number; // -1 = unlimited, otherwise remaining count
+  sold?: number;
+}
+
 interface TicketSelectorProps {
-  tiers: TicketTier[];
+  tiers: TierWithAvailability[];
   currency: string;
 }
 
@@ -16,7 +21,9 @@ export function TicketSelector({ tiers, currency }: TicketSelectorProps) {
     <div className="space-y-3">
       {tiers.map((tier) => {
         const quantity = getTicketQuantity(tier.id);
-        const isSoldOut = tier.quantity !== -1 && tier.quantity <= 0;
+        // Use remaining if available, otherwise fall back to quantity (for backwards compatibility)
+        const available = tier.remaining !== undefined ? tier.remaining : tier.quantity;
+        const isSoldOut = available !== -1 && available <= 0;
 
         return (
           <div
@@ -33,11 +40,11 @@ export function TicketSelector({ tiers, currency }: TicketSelectorProps) {
                 )}
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-[18px] font-semibold text-white">
-                    {formatCurrency(tier.price, currency)}
+                    {tier.price === 0 ? 'Free' : formatCurrency(tier.price, currency)}
                   </span>
-                  {tier.quantity !== -1 && (
+                  {available !== -1 && (
                     <span className="text-[12px] text-white/40">
-                      {isSoldOut ? 'Sold out' : `${tier.quantity} left`}
+                      {isSoldOut ? 'Sold out' : `${available} left`}
                     </span>
                   )}
                 </div>
@@ -60,10 +67,10 @@ export function TicketSelector({ tiers, currency }: TicketSelectorProps) {
                   </span>
                   <button
                     onClick={() => {
-                      const maxQuantity = tier.quantity === -1 ? 10 : tier.quantity;
+                      const maxQuantity = available === -1 ? 10 : available;
                       setTicketQuantity(tier.id, tier.name, Math.min(maxQuantity, quantity + 1), tier.price);
                     }}
-                    disabled={tier.quantity !== -1 && quantity >= tier.quantity}
+                    disabled={available !== -1 && quantity >= available}
                     className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
