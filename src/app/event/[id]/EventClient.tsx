@@ -13,6 +13,33 @@ import { subscribeToEventSeats } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePageView } from '@/hooks/usePageView';
 
+// Adaptive cover image that handles both portrait and landscape images
+function AdaptiveCoverImage({ src, alt }: { src: string; alt: string }) {
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setIsLandscape(img.width > img.height);
+      setLoaded(true);
+    };
+    img.src = src;
+  }, [src]);
+
+  return (
+    <div className={loaded ? (isLandscape ? 'aspect-[16/10]' : 'aspect-[4/5]') : 'aspect-[4/5]'}>
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full ${loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ${
+          isLandscape ? 'object-cover' : 'object-cover'
+        }`}
+      />
+    </div>
+  );
+}
+
 interface EventClientProps {
   event: PublicEvent;
   mapData: MapData | null;
@@ -205,12 +232,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
           {/* Left Column - Cover Image */}
           <div className="w-full lg:w-[340px] flex-shrink-0 space-y-5">
-            {/* Cover Image */}
+            {/* Cover Image - Adapts to portrait or landscape */}
             <div className="relative rounded-3xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
               {event.coverImageUrl ? (
-                <div className="aspect-[4/5]">
-                  <img src={event.coverImageUrl} alt={event.name} className="w-full h-full object-cover" />
-                </div>
+                <AdaptiveCoverImage src={event.coverImageUrl} alt={event.name} />
               ) : (
                 <div className="aspect-[4/5] flex flex-col items-center justify-center p-8 text-center">
                   <div className="w-20 h-20 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-5">

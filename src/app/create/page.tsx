@@ -970,6 +970,7 @@ export default function CreateEvent() {
   const { user, loading: authLoading } = useAuth();
   const [eventName, setEventName] = useState('');
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverImageIsLandscape, setCoverImageIsLandscape] = useState(false);
   const [startDate, setStartDate] = useState(() => formatLocalDate(new Date()));
   const [startTime, setStartTime] = useState('19:00');
   const [endDate, setEndDate] = useState(() => formatLocalDate(new Date()));
@@ -1223,7 +1224,7 @@ export default function CreateEvent() {
               {/* Cover Image */}
               <div className="relative rounded-3xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
                 {coverImage ? (
-                  <div className="aspect-[4/5] relative group">
+                  <div className={`${coverImageIsLandscape ? 'aspect-[16/10]' : 'aspect-[4/5]'} relative group`}>
                     <img
                       src={coverImage}
                       alt="Event cover"
@@ -1241,7 +1242,12 @@ export default function CreateEvent() {
                             if (file) {
                               const reader = new FileReader();
                               reader.onload = (e) => {
-                                setCoverImage(e.target?.result as string);
+                                const dataUrl = e.target?.result as string;
+                                setCoverImage(dataUrl);
+                                // Detect aspect ratio
+                                const img = new window.Image();
+                                img.onload = () => setCoverImageIsLandscape(img.width > img.height);
+                                img.src = dataUrl;
                               };
                               reader.readAsDataURL(file);
                             }
@@ -1255,7 +1261,7 @@ export default function CreateEvent() {
                     {/* Remove button */}
                     <button
                       type="button"
-                      onClick={() => setCoverImage(null)}
+                      onClick={() => { setCoverImage(null); setCoverImageIsLandscape(false); }}
                       className="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1274,7 +1280,12 @@ export default function CreateEvent() {
                         if (file) {
                           const reader = new FileReader();
                           reader.onload = (e) => {
-                            setCoverImage(e.target?.result as string);
+                            const dataUrl = e.target?.result as string;
+                            setCoverImage(dataUrl);
+                            // Detect aspect ratio
+                            const img = new window.Image();
+                            img.onload = () => setCoverImageIsLandscape(img.width > img.height);
+                            img.src = dataUrl;
                           };
                           reader.readAsDataURL(file);
                         }
