@@ -253,20 +253,17 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 Dashboard
               </Link>
             )}
-            {/* Show selection summary in nav when seats/tickets selected */}
-            {hasSelection && (
+            {/* Show selection summary in nav when seats selected (seated events only) */}
+            {event.eventType === 'seated' && selectedSeats.length > 0 && (
               <>
                 <span className="hidden sm:inline text-[14px] text-white/60">
-                  {event.eventType === 'seated'
-                    ? `${selectedSeats.length} seat${selectedSeats.length !== 1 ? 's' : ''}`
-                    : `${getTotalTickets()} ticket${getTotalTickets() !== 1 ? 's' : ''}`
-                  } · {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
+                  {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} · {formatCurrency(totalPrice, event.currency)}
                 </span>
                 <button
                   onClick={handleGetTickets}
                   className="h-10 px-6 text-[14px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
                 >
-                  {isFreeEvent ? 'Register' : 'Get Tickets'}
+                  Get Tickets
                 </button>
               </>
             )}
@@ -464,37 +461,36 @@ export function EventClient({ event, mapData }: EventClientProps) {
         </div>
       </main>
 
-      {/* Mobile Fixed Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/10 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            {hasSelection ? (
-              <>
-                <p className="text-[12px] text-white/50">
-                  {event.eventType === 'seated'
-                    ? `${selectedSeats.length} seat${selectedSeats.length !== 1 ? 's' : ''} selected`
-                    : `${getTotalTickets()} ticket${getTotalTickets() !== 1 ? 's' : ''} selected`
-                  }
+      {/* Mobile Fixed Footer - Only for seated events */}
+      {event.eventType === 'seated' && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/10 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              {selectedSeats.length > 0 ? (
+                <>
+                  <p className="text-[12px] text-white/50">
+                    {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} selected
+                  </p>
+                  <p className="text-[16px] font-semibold text-white">
+                    {formatCurrency(totalPrice, event.currency)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-[14px] text-white/70">
+                  Select seats to continue
                 </p>
-                <p className="text-[16px] font-semibold text-white">
-                  {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
-                </p>
-              </>
-            ) : (
-              <p className="text-[14px] text-white/70">
-                {event.eventType === 'seated' ? 'Select seats to continue' : 'Select tickets'}
-              </p>
-            )}
+              )}
+            </div>
+            <button
+              onClick={handleGetTickets}
+              disabled={selectedSeats.length === 0}
+              className="h-11 px-6 text-[14px] font-semibold rounded-full transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Get Tickets
+            </button>
           </div>
-          <button
-            onClick={handleGetTickets}
-            disabled={!hasSelection}
-            className="h-11 px-6 text-[14px] font-semibold rounded-full transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isFreeEvent ? 'Register' : 'Get Tickets'}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Checkout Modal */}
       <CheckoutModal
