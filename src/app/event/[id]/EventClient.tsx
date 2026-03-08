@@ -223,6 +223,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
     // Clear the selection after successful payment/registration
     clearSelection();
     clearTickets();
+    // Immediately refetch availability to show updated counts
+    fetchSeatStatus();
+    fetchTicketAvailability();
   };
 
   return (
@@ -498,6 +501,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
         onClose={() => {
           setCheckoutModalOpen(false);
           setCheckoutError(null);
+          // Refetch availability when modal closes to ensure counts are current
+          fetchSeatStatus();
+          fetchTicketAvailability();
         }}
         eventId={event.id}
         eventName={event.name}

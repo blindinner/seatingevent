@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Get ticket availability for an event
 export async function GET(
   request: NextRequest,
@@ -56,10 +60,20 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({
+    // Add debug logging
+    console.log(`[Tickets API] Event ${eventId}: ${bookings?.length || 0} paid bookings, soldByTier:`, soldByTier);
+
+    const response = NextResponse.json({
       tiers: tiersWithAvailability,
       soldByTier,
     });
+
+    // Prevent caching to ensure fresh data
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error) {
     console.error('Error getting ticket availability:', error);
     return NextResponse.json(
