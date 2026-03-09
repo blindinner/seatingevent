@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { signInWithOAuth, OAuthProvider } from '@/lib/auth';
 
@@ -75,8 +76,14 @@ function SignInContent() {
     <div className="min-h-screen bg-zinc-950 flex flex-col">
       {/* Header */}
       <header className="p-6">
-        <Link href="/" className="text-xl font-semibold text-white hover:text-zinc-300 transition-colors">
-          Luma Seated
+        <Link href="/" className="group">
+          <Image
+            src="/logo.png"
+            alt="Seated"
+            width={168}
+            height={168}
+            className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+          />
         </Link>
       </header>
 

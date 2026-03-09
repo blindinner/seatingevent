@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import type { PublicEvent } from '@/types/event';
 import type { MapData } from '@/types/map';
 import { SeatMapViewer } from '@/components/event/SeatMapViewer';
@@ -239,9 +240,14 @@ export function EventClient({ event, mapData }: EventClientProps) {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${themeColor}cc` }}>
         <div className="max-w-6xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform bg-white" />
-            <span className="text-[16px] font-medium text-white/90">seated</span>
+          <Link href="/" className="group">
+            <NextImage
+              src="/logo.png"
+              alt="Seated"
+              width={168}
+              height={168}
+              className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+            />
           </Link>
           <div className="flex items-center gap-4">
             {/* Owner Dashboard Link */}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -1181,9 +1182,14 @@ export default function CreateEvent() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${selectedColor.bg}cc` }}>
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg group-hover:scale-105 transition-transform bg-white" />
-            <span className="text-[15px] font-medium text-white/90">seated</span>
+          <Link href="/" className="group">
+            <Image
+              src="/logo.png"
+              alt="Seated"
+              width={144}
+              height={144}
+              className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
+            />
           </Link>
           <div className="flex items-center gap-3">
             {/* User indicator */}

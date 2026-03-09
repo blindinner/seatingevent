@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface OrderDetails {
   id: string;
@@ -80,8 +81,14 @@ export default function OrderConfirmationPage() {
       {/* Header */}
       <header className="border-b border-zinc-800">
         <div className="max-w-2xl mx-auto px-4 py-4">
-          <Link href="/" className="text-xl font-semibold text-white hover:text-zinc-300 transition-colors">
-            Luma Seated
+          <Link href="/" className="group">
+            <Image
+              src="/logo.png"
+              alt="Seated"
+              width={168}
+              height={168}
+              className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+            />
           </Link>
         </div>
       </header>

@@ -1,130 +1,133 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
+import gsap from 'gsap';
 
-function SeatMap() {
-  const rows = 10;
-  const cols = 8;
-  const seats = [];
+function DemoVideo() {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const index = row * cols + col;
-      const delay = (row * 0.05) + (col * 0.02);
+  useEffect(() => {
+    // Entrance animation
+    gsap.fromTo(
+      containerRef.current,
+      { y: 50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 1, ease: 'power3.out', delay: 0.5 }
+    );
+  }, []);
 
-      let type = 'seat-available';
-      if ((row === 2 && col >= 3 && col <= 5) ||
-          (row === 5 && col >= 2 && col <= 4) ||
-          (row === 7 && col >= 5 && col <= 7)) {
-        type = 'seat-taken';
-      }
-      if ((row === 4 && col >= 3 && col <= 4)) {
-        type = 'seat-selected';
-      }
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Glow behind video */}
+      <div className="absolute -inset-10 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-amber-500/20 blur-3xl rounded-full" />
 
-      seats.push(
-        <div
-          key={index}
-          className={`seat ${type}`}
-          style={{ animationDelay: `${delay + 0.5}s` }}
-        />
-      );
-    }
-  }
-
-  return <div className="seat-grid">{seats}</div>;
+      {/* Video container with rounded corners */}
+      <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full max-w-[950px] h-auto"
+        >
+          <source src="/demo.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
+  const textContentRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tl = gsap.timeline();
+
+    // Animate text content in
+    tl.fromTo(
+      textContentRef.current,
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }
+    )
+    // Fade in CTA
+    .fromTo(
+      ctaRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' },
+      '-=0.4'
+    );
+  }, []);
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0a0a09]">
       {/* Animated gradient orbs */}
-      <div className="gradient-orb gradient-orb-1" />
-      <div className="gradient-orb gradient-orb-2" />
-      <div className="gradient-orb gradient-orb-3" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
 
       {/* Noise texture overlay */}
-      <div className="noise-overlay" />
+      <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
 
       {/* Navigation */}
       <Header variant="transparent" />
 
       {/* Hero Section */}
-      <main className="relative z-10 min-h-screen flex items-center justify-center px-6 py-24">
-        <div className="max-w-6xl mx-auto w-full grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Left side - Text content */}
-          <div className="text-center lg:text-left">
-            <h1 className="fade-up text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#faf9f7] mb-8 leading-[1.1]">
-              Your event,{' '}
-              <span className="gradient-text">every seat</span>
+      <main className="relative z-10 px-6 pt-28 pb-16">
+        {/* Text content - centered at top */}
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <div ref={textContentRef} className="opacity-0">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+              One platform,{' '}
+              <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">
+                any event
+              </span>
             </h1>
 
-            <p className="fade-up-delay-1 text-lg sm:text-xl text-[#faf9f7]/50 mb-12 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              Create beautiful event pages with interactive seat maps.
-              Let your guests choose exactly where they want to be.
+            <p className="text-lg sm:text-xl text-white/50 mb-8 leading-relaxed max-w-xl mx-auto">
+              Create beautiful event pages in minutes. Seated or standing, free or paid —
+              everything you need to bring people together.
             </p>
-
-            <div className="fade-up-delay-2">
-              <Link
-                href="/create"
-                className="btn-glow inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-[#0a0a09] bg-[#faf9f7] rounded-full hover:bg-[#faf9f7]/90 transition-all duration-300 shadow-lg shadow-white/5 hover:shadow-xl hover:-translate-y-0.5"
-              >
-                Create an event
-              </Link>
-            </div>
           </div>
 
-          {/* Right side - Phone mockup */}
-          <div className="fade-up-delay-3 flex justify-center lg:justify-end">
-            <div className="relative">
-              {/* Glow behind phone */}
-              <div className="phone-glow" />
-
-              {/* Phone frame */}
-              <div className="phone-mockup">
-                <div className="phone-screen">
-                  {/* Event header inside phone */}
-                  <div className="p-4 border-b border-white/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-200/80 to-amber-600/80 float-slow" />
-                      <div>
-                        <div className="h-3 w-24 bg-[#faf9f7]/80 rounded" />
-                        <div className="h-2 w-16 bg-[#faf9f7]/20 rounded mt-1.5" />
-                      </div>
-                    </div>
-                    <div className="h-2 w-32 bg-[#faf9f7]/10 rounded" />
-                  </div>
-
-                  {/* Stage indicator */}
-                  <div className="px-4 py-3">
-                    <div className="h-8 rounded-lg bg-[#faf9f7]/5 border border-white/5 flex items-center justify-center">
-                      <span className="text-[10px] text-[#faf9f7]/30 uppercase tracking-widest">Stage</span>
-                    </div>
-                  </div>
-
-                  {/* Seat map */}
-                  <div className="px-2">
-                    <SeatMap />
-                  </div>
-
-                  {/* Bottom action */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0a0a09] to-transparent">
-                    <div className="h-10 rounded-full bg-gradient-to-r from-amber-300/90 to-amber-500/90 flex items-center justify-center float-medium shadow-lg shadow-amber-900/20">
-                      <span className="text-xs text-[#0a0a09] font-medium">Select Seats</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div ref={ctaRef} className="opacity-0">
+            <Link
+              href="/create"
+              className="group inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-black bg-gradient-to-r from-amber-300 via-orange-400 to-amber-300 rounded-full transition-all duration-300 shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5"
+            >
+              Create an event
+              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
           </div>
+        </div>
+
+        {/* Demo video - large and centered below */}
+        <div className="flex justify-center">
+          <DemoVideo />
         </div>
       </main>
 
-      {/* Floating decorative elements */}
-      <div className="absolute top-1/4 left-10 w-2 h-2 bg-amber-400/40 rounded-full float-slow" />
-      <div className="absolute top-1/3 right-20 w-1.5 h-1.5 bg-amber-300/30 rounded-full float-medium" />
-      <div className="absolute bottom-1/4 left-1/4 w-1 h-1 bg-amber-200/20 rounded-full float-slow" />
+      {/* Floating particles */}
+      <div className="absolute top-1/4 left-10 w-2 h-2 bg-amber-400/40 rounded-full animate-float" />
+      <div className="absolute top-1/3 right-20 w-1.5 h-1.5 bg-orange-400/30 rounded-full animate-float-delayed" />
+      <div className="absolute bottom-1/4 left-1/4 w-1 h-1 bg-amber-300/20 rounded-full animate-float" />
+      <div className="absolute top-2/3 right-1/3 w-1.5 h-1.5 bg-orange-300/25 rounded-full animate-float-delayed" />
+
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+          animation: float 6s ease-in-out infinite;
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 }
