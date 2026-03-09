@@ -182,6 +182,7 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
 
   // Check if QR code should be included (default to true)
   const includeQrCode = data.sendQrCode !== false;
+  console.log('sendTicketEmail called:', { to: data.to, includeQrCode, rawSendQrCode: data.sendQrCode });
 
   // Apply custom email settings with defaults
   const settings = data.emailSettings || {};

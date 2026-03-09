@@ -118,7 +118,16 @@ export async function POST(request: NextRequest) {
         }));
 
         try {
-          await sendTicketEmail({
+          const sendQrCodeValue = eventData.send_qr_code !== false;
+          console.log('Email params:', {
+            to: customer.email,
+            eventName: eventData.name,
+            ticketCode: order.ticketCode,
+            sendQrCode: sendQrCodeValue,
+            rawSendQrCode: eventData.send_qr_code,
+          });
+
+          const emailResult = await sendTicketEmail({
             to: customer.email,
             customerName: `${customer.firstName} ${customer.lastName}`,
             eventName: eventData.name,
@@ -130,9 +139,9 @@ export async function POST(request: NextRequest) {
             totalAmount: 0,
             currency,
             emailSettings: eventData.email_settings || undefined,
-            sendQrCode: eventData.send_qr_code !== false, // Default to true
+            sendQrCode: sendQrCodeValue,
           });
-          console.log('Confirmation email sent for free registration');
+          console.log('Email result:', emailResult);
         } catch (emailError) {
           console.error('Failed to send confirmation email:', emailError);
           // Don't fail the registration if email fails
