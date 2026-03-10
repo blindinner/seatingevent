@@ -32,7 +32,7 @@ export async function sendOwnerNotificationEmail(data: OwnerNotificationData): P
   }).format(data.totalAmount);
 
   const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-  const fromName = process.env.EMAIL_FROM_NAME || 'Luma Seated';
+  const fromName = process.env.EMAIL_FROM_NAME || 'Rendeza';
 
   try {
     const { error } = await resend.emails.send({
@@ -174,7 +174,7 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
 
   // Use Resend's test email as default (works without domain verification)
   const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-  const fromName = process.env.EMAIL_FROM_NAME || 'Luma Seated';
+  const fromName = process.env.EMAIL_FROM_NAME || 'Rendeza';
 
   // Build verification URL for QR code
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seatingevent-j3ip.vercel.app';

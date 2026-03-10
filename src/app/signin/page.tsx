@@ -184,9 +184,13 @@ function SignInContent() {
             <div className="bg-zinc-900 rounded-2xl p-8 border border-zinc-800">
               {/* Logo */}
               <div className="flex justify-center mb-6">
-                <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center">
-                  <span className="text-2xl font-bold text-black">S</span>
-                </div>
+                <Image
+                  src="/logo.png"
+                  alt="Seated"
+                  width={120}
+                  height={120}
+                  className="h-12 w-auto"
+                />
               </div>
 
               <h1 className="text-xl font-semibold text-white text-center mb-2">

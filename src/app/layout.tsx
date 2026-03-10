@@ -7,24 +7,28 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://seated.events"),
-  title: "Luma Seated",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://rendeza.com"),
+  title: "Rendeza",
   description: "Set up an event page, invite friends and sell tickets. Host a memorable event today.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
-    title: "Luma Seated",
+    title: "Rendeza",
     description: "Set up an event page, invite friends and sell tickets. Host a memorable event today.",
     images: [
       {
         url: "/logo.png",
         width: 512,
         height: 512,
-        alt: "Luma Seated",
+        alt: "Rendeza",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "Luma Seated",
+    title: "Rendeza",
     description: "Set up an event page, invite friends and sell tickets. Host a memorable event today.",
     images: ["/logo.png"],
   },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { sendOtp, verifyOtp, signInWithOAuth } from '@/lib/auth';
 
 interface SimpleAuthModalProps {
@@ -147,11 +148,15 @@ export function SimpleAuthModal({ isOpen, onClose, onSuccess }: SimpleAuthModalP
         <div className="p-8">
           {step === 'email' ? (
             <>
-              {/* Logo/Brand */}
+              {/* Logo */}
               <div className="flex justify-center mb-6">
-                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center">
-                  <span className="text-xl font-bold text-black">S</span>
-                </div>
+                <Image
+                  src="/logo.png"
+                  alt="Seated"
+                  width={120}
+                  height={120}
+                  className="h-10 w-auto"
+                />
               </div>
 
               <h2 className="text-xl font-semibold text-white text-center mb-2">
