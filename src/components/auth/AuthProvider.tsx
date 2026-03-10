@@ -25,10 +25,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Get initial user
-    getUser().then((user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    getUser()
+      .then((user) => {
+        setUser(user);
+        setLoading(false);
+      })
+      .catch((error) => {
+        // Handle stale/invalid token errors gracefully
+        console.warn('Auth error (clearing session):', error.message);
+        // Clear the invalid session
+        signOut().catch(() => {});
+        setUser(null);
+        setLoading(false);
+      });
 
     // Listen for auth changes
     const subscription = onAuthStateChange((user) => {
