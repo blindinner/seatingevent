@@ -63,7 +63,7 @@ export function Header({ variant = 'default', backgroundColor }: HeaderProps) {
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xs font-medium text-white">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
-                <span className="text-sm text-zinc-300 max-w-[120px] truncate hidden sm:block">
+                <span className="text-sm text-zinc-300 max-w-[120px] truncate">
                   {user.email?.split('@')[0]}
                 </span>
                 <svg

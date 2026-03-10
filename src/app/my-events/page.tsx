@@ -114,16 +114,17 @@ export default function MyEventsPage() {
           (eventsData || []).map(async (event) => {
             const { data: bookings } = await supabase
               .from('bookings')
-              .select('amount_paid, payment_status')
+              .select('amount_paid, payment_status, seat_count')
               .eq('event_id', event.id)
               .eq('payment_status', 'paid');
 
-            const totalBookings = bookings?.length || 0;
+            // Sum up seat_count to get actual ticket count (not just number of bookings)
+            const totalTickets = bookings?.reduce((sum, b) => sum + (b.seat_count || 0), 0) || 0;
             const totalRevenue = bookings?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0;
 
             return {
               ...event,
-              total_bookings: totalBookings,
+              total_bookings: totalTickets,
               total_revenue: totalRevenue,
             };
           })

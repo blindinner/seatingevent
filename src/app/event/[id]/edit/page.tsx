@@ -852,8 +852,32 @@ export default function EditEvent() {
                 />
               )}
 
-              {/* Pricing Editor (for Seated events) */}
+              {/* Seat Map Editor (for Seated events) */}
               {eventType === 'seated' && (
+                <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.04]">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                      </svg>
+                      <div>
+                        <span className="text-[14px] text-white/70">Seat Map</span>
+                        <p className="text-[12px] text-white/40">{map ? `${getCapacityDisplay()}` : 'No seat map yet'}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSeatMapModalOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-white/10 text-white text-[13px] font-medium hover:bg-white/20 transition-colors"
+                    >
+                      {map ? 'Edit Map' : 'Create Map'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing Editor (for Seated events) */}
+              {eventType === 'seated' && map && (
                 <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.04]">
                     <div className="flex items-center gap-3">
@@ -867,7 +891,6 @@ export default function EditEvent() {
                     </div>
                     <CurrencySelector value={currency} onChange={setCurrency} />
                   </div>
-                  {map ? (
                     <div className="p-3 space-y-2">
                       {map.categories.map(category => (
                         <div key={category.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.04] group">
@@ -923,11 +946,6 @@ export default function EditEvent() {
                         <span className="text-[13px]">Add Category</span>
                       </button>
                     </div>
-                  ) : (
-                    <div className="p-4 text-center text-[13px] text-white/40">
-                      Create a seat map to set pricing
-                    </div>
-                  )}
                 </div>
               )}
 
