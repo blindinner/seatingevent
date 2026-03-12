@@ -589,7 +589,7 @@ export default function EditEvent() {
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${selectedColor.bg}cc` }}>
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href={`/event/${eventId}/dashboard`} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -610,11 +610,11 @@ export default function EditEvent() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative max-w-5xl mx-auto px-6 py-10 pb-28">
+      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 pb-28">
         <form id="edit-event-form" onSubmit={handleSubmit}>
-          <div className="flex gap-10">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
             {/* Left Column - Cover Image */}
-            <div className="w-80 flex-shrink-0 space-y-4">
+            <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
               <div className="relative rounded-3xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
                 {coverImage ? (
                   <div className="aspect-[4/5] relative group">
@@ -690,7 +690,7 @@ export default function EditEvent() {
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
                 placeholder="Event name"
-                className={`w-full text-[2.5rem] font-semibold text-white placeholder:text-white/20 bg-transparent focus:outline-none tracking-tight ${selectedFont.style}`}
+                className={`w-full text-[1.75rem] sm:text-[2.5rem] font-semibold text-white placeholder:text-white/20 bg-transparent focus:outline-none tracking-tight ${selectedFont.style}`}
               />
 
               {/* Date/Time */}
@@ -1024,10 +1024,10 @@ export default function EditEvent() {
 
       {/* Fixed Bottom Theme Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/10">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <span className="text-[12px] text-white/40">Color</span>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 overflow-x-auto">
+          <div className="flex items-center gap-4 sm:gap-6 min-w-max">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-[11px] sm:text-[12px] text-white/40">Color</span>
               <div className="flex gap-1.5">
                 {themeColors.map((color) => (
                   <button
@@ -1060,9 +1060,9 @@ export default function EditEvent() {
                 </div>
               </div>
             </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="flex items-center gap-3">
-              <span className="text-[12px] text-white/40">Font</span>
+            <div className="w-px h-6 sm:h-8 bg-white/10 flex-shrink-0" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-[11px] sm:text-[12px] text-white/40">Font</span>
               <div className="flex gap-1.5">
                 {themeFonts.map((font) => (
                   <button

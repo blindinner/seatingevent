@@ -31,7 +31,7 @@ function DemoVideo() {
           playsInline
           className="w-full max-w-[950px] h-auto"
         >
-          <source src="https://res.cloudinary.com/drfqotrif/video/upload/v1773066510/Google_Chrome_-_9_March_2026_t78dvs.mp4" type="video/mp4" />
+          <source src="https://res.cloudinary.com/drfqotrif/video/upload/e_accelerate:100/v1773066510/Google_Chrome_-_9_March_2026_t78dvs.mp4" type="video/mp4" />
         </video>
       </div>
     </div>
