@@ -264,7 +264,10 @@ function SignInContent() {
               </form>
 
               <p className="mt-8 text-xs text-zinc-500 text-center">
-                By continuing, you agree to our Terms of Service
+                By continuing, you agree to our{' '}
+                <Link href="/terms" className="text-zinc-400 hover:text-white underline">
+                  Terms of Service
+                </Link>
               </p>
             </div>
           ) : (

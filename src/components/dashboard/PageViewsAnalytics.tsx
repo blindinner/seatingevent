@@ -62,30 +62,36 @@ export function PageViewsAnalytics({ eventId }: PageViewsAnalyticsProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  // Shorter format for mobile chart labels
+  const formatDateShort = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  };
+
   return (
     <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
-        <h3 className="text-sm font-medium text-white">Page Views</h3>
-        <div className="flex gap-1">
+      <div className="p-3 sm:p-4 border-b border-white/[0.08] flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium text-white flex-shrink-0">Page Views</h3>
+        <div className="flex gap-0.5 sm:gap-1 flex-shrink-0">
           {(['7d', '30d', 'all'] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-2 py-1 text-xs rounded transition-colors ${
+              className={`px-1.5 sm:px-2 py-1 text-xs rounded transition-colors ${
                 period === p
                   ? 'bg-white/10 text-white'
                   : 'text-white/50 hover:text-white hover:bg-white/5'
               }`}
             >
-              {p === '7d' ? '7 Days' : p === '30d' ? '30 Days' : 'All'}
+              {p === '7d' ? '7d' : p === '30d' ? '30d' : 'All'}
             </button>
           ))}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin w-5 h-5 border-2 border-white/20 border-t-white rounded-full" />
@@ -95,13 +101,13 @@ export function PageViewsAnalytics({ eventId }: PageViewsAnalyticsProps) {
         ) : data ? (
           <div className="space-y-4">
             {/* Stats Row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div className="bg-white/[0.04] rounded-lg p-3">
-                <div className="text-2xl font-semibold text-white">{data.totalViews}</div>
+                <div className="text-xl sm:text-2xl font-semibold text-white">{data.totalViews}</div>
                 <div className="text-xs text-white/50">Total Views</div>
               </div>
               <div className="bg-white/[0.04] rounded-lg p-3">
-                <div className="text-2xl font-semibold text-white">{data.uniqueVisitors}</div>
+                <div className="text-xl sm:text-2xl font-semibold text-white">{data.uniqueVisitors}</div>
                 <div className="text-xs text-white/50">Unique Visitors</div>
               </div>
             </div>
@@ -110,8 +116,8 @@ export function PageViewsAnalytics({ eventId }: PageViewsAnalyticsProps) {
             {data.dailyViews.length > 0 ? (
               <div className="space-y-2">
                 <div className="text-xs text-white/50">Views by Day</div>
-                <div className="flex items-end gap-1 h-24">
-                  {data.dailyViews.slice(-14).map((day, i) => (
+                <div className="flex items-end gap-0.5 sm:gap-1 h-20 sm:h-24">
+                  {data.dailyViews.slice(-14).map((day) => (
                     <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                       <div
                         className="w-full bg-blue-500/80 rounded-t transition-all duration-300 hover:bg-blue-400"
@@ -124,8 +130,8 @@ export function PageViewsAnalytics({ eventId }: PageViewsAnalyticsProps) {
                   ))}
                 </div>
                 <div className="flex justify-between text-[10px] text-white/40">
-                  <span>{data.dailyViews.length > 0 ? formatDate(data.dailyViews[Math.max(0, data.dailyViews.length - 14)].date) : ''}</span>
-                  <span>{data.dailyViews.length > 0 ? formatDate(data.dailyViews[data.dailyViews.length - 1].date) : ''}</span>
+                  <span>{data.dailyViews.length > 0 ? formatDateShort(data.dailyViews[Math.max(0, data.dailyViews.length - 14)].date) : ''}</span>
+                  <span>{data.dailyViews.length > 0 ? formatDateShort(data.dailyViews[data.dailyViews.length - 1].date) : ''}</span>
                 </div>
               </div>
             ) : (
@@ -138,11 +144,11 @@ export function PageViewsAnalytics({ eventId }: PageViewsAnalyticsProps) {
             {Object.keys(data.deviceBreakdown).length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs text-white/50">Devices</div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
                   {Object.entries(data.deviceBreakdown).map(([device, count]) => {
                     const percentage = Math.round((count / data.totalViews) * 100);
                     return (
-                      <div key={device} className="flex items-center gap-2 text-xs">
+                      <div key={device} className="flex items-center gap-1.5 text-xs">
                         <span className="capitalize text-white/70">{device}</span>
                         <span className="text-white/40">{percentage}%</span>
                       </div>
@@ -158,9 +164,9 @@ export function PageViewsAnalytics({ eventId }: PageViewsAnalyticsProps) {
                 <div className="text-xs text-white/50">Top Sources</div>
                 <div className="space-y-1">
                   {data.topReferrers.slice(0, 3).map((ref) => (
-                    <div key={ref.domain} className="flex items-center justify-between text-xs">
-                      <span className="text-white/70 truncate">{ref.domain}</span>
-                      <span className="text-white/40">{ref.count}</span>
+                    <div key={ref.domain} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-white/70 truncate min-w-0">{ref.domain}</span>
+                      <span className="text-white/40 flex-shrink-0">{ref.count}</span>
                     </div>
                   ))}
                 </div>

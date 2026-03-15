@@ -246,118 +246,160 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
   }, [orders, event.name]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a09]">
+    <div className="min-h-screen bg-[#0a0a09] overflow-x-hidden">
       {/* Header */}
       <header className="border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <Link
                 href={`/event/${event.id}`}
-                className="text-white/50 hover:text-white transition-colors"
+                className="text-white/50 hover:text-white transition-colors flex-shrink-0"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
-              <div>
-                <h1 className="text-xl font-semibold text-white">{event.name}</h1>
-                <p className="text-sm text-white/50">{formattedDate}</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-xl font-semibold text-white truncate">{event.name}</h1>
+                <p className="text-xs sm:text-sm text-white/50 truncate">{formattedDate}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={exportCSV}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Export attendees as CSV"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                <span className="hidden sm:inline">Export</span>
-              </button>
-              <Link
-                href={`/event/${event.id}/edit`}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline">Edit</span>
-              </Link>
-              <Link
-                href={`/event/${event.id}/settings`}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="hidden sm:inline">Settings</span>
-              </Link>
-              <Link
-                href={`/event/${event.id}/check-in`}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="hidden sm:inline">Check-in</span>
-              </Link>
-              <Link
-                href={`/event/${event.id}`}
-                className="px-3 py-2 text-sm text-white/70 hover:text-white transition-colors"
-              >
-                View
-              </Link>
+            <div className="flex items-center flex-shrink-0">
+              {/* Mobile: Show only key actions */}
+              <div className="flex items-center sm:hidden">
+                <button
+                  onClick={exportCSV}
+                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Export"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+                <Link
+                  href={`/event/${event.id}/check-in`}
+                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Check-in"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </Link>
+                <Link
+                  href={`/event/${event.id}/edit`}
+                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Edit"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </Link>
+              </div>
+              {/* Desktop: Show all actions with labels */}
+              <div className="hidden sm:flex items-center gap-1">
+                <button
+                  onClick={exportCSV}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Export attendees as CSV"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export
+                </button>
+                <Link
+                  href={`/event/${event.id}/edit`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </Link>
+                <Link
+                  href={`/event/${event.id}/settings`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Settings
+                </Link>
+                <Link
+                  href={`/event/${event.id}/check-in`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Check-in
+                </Link>
+                <Link
+                  href={`/event/${event.id}`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 overflow-hidden">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-            <div className="text-sm text-white/50 mb-1">Tickets Sold</div>
-            <div className="text-2xl font-semibold text-white">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
+          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl sm:rounded-2xl p-3 sm:p-5 overflow-hidden">
+            <div className="text-xs sm:text-sm text-white/50 mb-1">Tickets Sold</div>
+            <div className="text-lg sm:text-2xl font-semibold text-white truncate">
               {stats.ticketsSold}
               {stats.totalSeats > 0 && (
-                <span className="text-base font-normal text-white/40">
+                <span className="text-xs sm:text-base font-normal text-white/40">
                   {' '}/ {stats.totalSeats === Infinity ? '∞' : stats.totalSeats}
                 </span>
               )}
             </div>
           </div>
-          <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-            <div className="text-sm text-white/50 mb-1">Available</div>
-            <div className="text-2xl font-semibold text-white">
+          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl sm:rounded-2xl p-3 sm:p-5 overflow-hidden">
+            <div className="text-xs sm:text-sm text-white/50 mb-1">Available</div>
+            <div className="text-lg sm:text-2xl font-semibold text-white truncate">
               {stats.totalSeats === Infinity ? '∞' : stats.availableSeats}
             </div>
           </div>
-          <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-            <div className="text-sm text-white/50 mb-1">Total Revenue</div>
-            <div className="text-2xl font-semibold text-white">
+          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl sm:rounded-2xl p-3 sm:p-5 overflow-hidden">
+            <div className="text-xs sm:text-sm text-white/50 mb-1">Revenue</div>
+            <div className="text-lg sm:text-2xl font-semibold text-white truncate">
               {formatCurrency(stats.totalRevenue * 100, event.currency, { showFree: false })}
             </div>
           </div>
-          <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-            <div className="text-sm text-white/50 mb-1">Orders</div>
-            <div className="text-2xl font-semibold text-white">{stats.bookingCount}</div>
+          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl sm:rounded-2xl p-3 sm:p-5 overflow-hidden">
+            <div className="text-xs sm:text-sm text-white/50 mb-1">Orders</div>
+            <div className="text-lg sm:text-2xl font-semibold text-white truncate">{stats.bookingCount}</div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {/* Main Content - Attendee List */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 order-2 md:order-1 min-w-0">
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
               {/* Table Header */}
               <div className="p-4 border-b border-white/[0.08]">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <h2 className="text-lg font-semibold text-white">Attendees</h2>
-                  <div className="flex-1 flex items-center gap-3">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white">Attendees</h2>
+                    <span className="text-sm text-white/40 md:hidden">
+                      {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                     {/* Search */}
-                    <div className="relative flex-1 max-w-xs">
+                    <div className="relative flex-1 sm:max-w-xs">
                       <svg
                         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
                         fill="none"
@@ -373,17 +415,17 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
                       </svg>
                       <input
                         type="text"
-                        placeholder="Search..."
+                        placeholder="Search name, email, or ticket..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-white/[0.06] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/20"
+                        className="w-full pl-9 pr-3 py-2.5 sm:py-2 bg-white/[0.06] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/20"
                       />
                     </div>
                     {/* Status Filter */}
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                      className="px-3 py-2 bg-white/[0.06] border border-white/[0.08] rounded-lg text-sm text-white focus:outline-none focus:border-white/20"
+                      className="px-3 py-2.5 sm:py-2 bg-white/[0.06] border border-white/[0.08] rounded-lg text-sm text-white focus:outline-none focus:border-white/20 sm:w-auto"
                     >
                       <option value="all">All Status</option>
                       <option value="paid">Paid</option>
@@ -414,8 +456,78 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
                 </div>
               )}
 
-              {/* Table */}
-              <div className="overflow-x-auto">
+              {/* Mobile Card Layout */}
+              <div className="md:hidden">
+                {filteredOrders.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-white/50">
+                    {orders.length === 0
+                      ? 'No orders yet'
+                      : 'No orders match your search'}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/[0.06]">
+                    {filteredOrders.map((order) => {
+                      const seats = (order.metadata?.seats as Array<{ label?: string }>) || [];
+                      const seatLabels = seats.map(s => s.label).filter(Boolean).join(', ') || `${order.seatCount} ticket${order.seatCount !== 1 ? 's' : ''}`;
+
+                      return (
+                        <div key={order.id} className="p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-white">{order.customerName || 'Unknown'}</div>
+                              <div className="text-xs text-white/50 truncate">{order.customerEmail}</div>
+                            </div>
+                            <span
+                              className={`flex-shrink-0 inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                                order.status === 'paid'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : order.status === 'pending'
+                                  ? 'bg-yellow-500/20 text-yellow-400'
+                                  : order.status === 'refunded'
+                                  ? 'bg-blue-500/20 text-blue-400'
+                                  : 'bg-red-500/20 text-red-400'
+                              }`}
+                            >
+                              {order.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-white/40">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                            </svg>
+                            <span className="truncate">{seatLabels}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <span className="text-sm font-medium text-white">
+                                {formatCurrency(order.totalAmount * 100, order.currency)}
+                              </span>
+                              <span className="text-xs text-white/40">
+                                {new Date(order.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                            </div>
+                            {order.status === 'paid' && (
+                              <button
+                                onClick={() => handleRefund(order.id, order.customerName)}
+                                disabled={refundingId === order.id}
+                                className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1"
+                              >
+                                {refundingId === order.id ? 'Refunding...' : 'Refund'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/[0.08]">
@@ -515,7 +627,7 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-1 md:order-2 min-w-0">
             {/* Page Views Analytics */}
             <PageViewsAnalytics eventId={event.id} />
 
