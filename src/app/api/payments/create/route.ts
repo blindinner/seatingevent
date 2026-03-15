@@ -192,12 +192,27 @@ export async function POST(request: NextRequest) {
 
     // Create payment items for AllPay
     // Convert prices from smallest unit (cents) to display currency for AllPay
-    const items: PaymentItem[] = selectedSeats.map((seat: { label: string; price: number }) => ({
-      name: `${eventName} - ${seat.label}`,
-      price: fromSmallestUnit(seat.price, currency),
-      qty: 1,
-      vat: 1,
-    }));
+    const items: PaymentItem[] = [];
+
+    // Add seated tickets
+    for (const seat of selectedSeats as Array<{ label: string; price: number }>) {
+      items.push({
+        name: `${eventName} - ${seat.label}`,
+        price: fromSmallestUnit(seat.price, currency),
+        qty: 1,
+        vat: 1,
+      });
+    }
+
+    // Add GA tickets
+    for (const ticket of selectedTickets as Array<{ tierName: string; price: number; quantity: number }>) {
+      items.push({
+        name: `${eventName} - ${ticket.tierName}`,
+        price: fromSmallestUnit(ticket.price, currency),
+        qty: ticket.quantity,
+        vat: 1,
+      });
+    }
 
     // Get AllPay config and base URL
     console.log('Getting AllPay config...');
