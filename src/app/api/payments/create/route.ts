@@ -3,7 +3,6 @@ import { createOrder, updateOrder } from '@/lib/orders';
 import { createPayment, type PaymentItem } from '@/lib/payments/allpay';
 import { getAllPayConfig, isTestMode, getBaseUrl } from '@/lib/payments';
 import { lockSeats } from '@/lib/seats';
-import { fromSmallestUnit } from '@/lib/currency';
 import { sendTicketEmail } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate total - prices are in cents (smallest currency unit)
+    // Calculate total - prices are in display currency
     const seatsTotal = selectedSeats.reduce(
       (sum: number, seat: { price: number }) => sum + seat.price,
       0
@@ -80,6 +79,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch event's short_id for storing in booking
+    let eventShortId: string | undefined;
+    try {
+      const { data: eventData } = await supabaseAdmin.client
+        .from('events')
+        .select('short_id')
+        .eq('id', eventId)
+        .single();
+      eventShortId = eventData?.short_id || undefined;
+    } catch (e) {
+      console.error('Error fetching event short_id:', e);
+    }
+
     // Handle free registration - no payment needed
     if (isFreeRegistration && totalAmount === 0) {
       console.log('Processing free registration...');
@@ -87,6 +99,7 @@ export async function POST(request: NextRequest) {
       // Create the order directly as paid
       const order = await createOrder({
         eventId,
+        eventShortId,
         customerFirstName: customer.firstName,
         customerLastName: customer.lastName,
         customerEmail: customer.email,
@@ -161,6 +174,7 @@ export async function POST(request: NextRequest) {
     try {
       order = await createOrder({
         eventId,
+        eventShortId,
         customerFirstName: customer.firstName,
         customerLastName: customer.lastName,
         customerEmail: customer.email,
@@ -191,14 +205,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create payment items for AllPay
-    // Convert prices from smallest unit (cents) to display currency for AllPay
     const items: PaymentItem[] = [];
 
     // Add seated tickets
     for (const seat of selectedSeats as Array<{ label: string; price: number }>) {
       items.push({
         name: `${eventName} - ${seat.label}`,
-        price: fromSmallestUnit(seat.price, currency),
+        price: seat.price,
         qty: 1,
         vat: 1,
       });
@@ -208,7 +221,7 @@ export async function POST(request: NextRequest) {
     for (const ticket of selectedTickets as Array<{ tierName: string; price: number; quantity: number }>) {
       items.push({
         name: `${eventName} - ${ticket.tierName}`,
-        price: fromSmallestUnit(ticket.price, currency),
+        price: ticket.price,
         qty: ticket.quantity,
         vat: 1,
       });

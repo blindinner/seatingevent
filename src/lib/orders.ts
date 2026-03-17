@@ -24,7 +24,7 @@ export interface Order {
   customerPhone: string | null;
   seatIds: string[];
   seatCount: number;
-  totalAmount: number; // in cents
+  totalAmount: number;
   currency: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded';
   paymentOrderId: string | null; // AllPay order_id
@@ -38,13 +38,14 @@ export interface Order {
 
 export interface CreateOrderInput {
   eventId: string;
+  eventShortId?: string;
   customerFirstName: string;
   customerLastName: string;
   customerEmail: string;
   customerPhone: string;
   seats?: OrderSeat[];
   tickets?: OrderTicket[];
-  totalAmount: number; // in cents (smallest currency unit)
+  totalAmount: number;
   currency: string;
   status: 'pending' | 'paid';
 }
@@ -86,21 +87,6 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const tickets = input.tickets || [];
   const seatIds = seats.map(s => s.seatId);
 
-  // Convert from cents to dollars for storage
-  const amountInDollars = input.totalAmount / 100;
-
-  // Also convert seat prices to dollars for consistency
-  const seatsWithDollarPrices = seats.map(seat => ({
-    ...seat,
-    price: seat.price / 100,
-  }));
-
-  // Convert ticket prices to dollars
-  const ticketsWithDollarPrices = tickets.map(ticket => ({
-    ...ticket,
-    price: ticket.price / 100,
-  }));
-
   // Calculate total ticket count
   const ticketCount = tickets.reduce((sum, t) => sum + t.quantity, 0);
   const totalItemCount = seatIds.length + ticketCount;
@@ -109,18 +95,19 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     .from('bookings')
     .insert({
       event_id: input.eventId,
+      event_short_id: input.eventShortId || null,
       customer_name: customerName,
       customer_email: input.customerEmail,
       customer_phone: input.customerPhone,
       seat_ids: seatIds.length > 0 ? seatIds : [], // Empty array for GA events
       seat_count: totalItemCount,
-      amount_paid: amountInDollars,
+      amount_paid: input.totalAmount,
       currency: input.currency,
       payment_status: input.status,
       ticket_code: input.status === 'paid' ? generateTicketCode() : null,
       metadata: {
-        seats: seatsWithDollarPrices,
-        tickets: ticketsWithDollarPrices,
+        seats: seats,
+        tickets: tickets,
       },
     })
     .select()
@@ -280,7 +267,7 @@ function mapDatabaseBooking(row: Record<string, unknown>): Order {
     customerPhone: row.customer_phone as string | null,
     seatIds: (row.seat_ids as string[]) || [],
     seatCount: row.seat_count as number,
-    totalAmount: row.amount_paid as number, // in cents
+    totalAmount: row.amount_paid as number,
     currency: row.currency as string,
     status: mapPaymentStatus(row.payment_status as string),
     paymentOrderId: row.idempotency_key as string | null,

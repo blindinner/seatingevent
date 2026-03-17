@@ -260,35 +260,35 @@ function CategoryPriceInput({
 }: {
   priceInCents: number | undefined;
   currencySymbol: string;
-  onChange: (cents: number) => void;
+  onChange: (price: number) => void;
 }) {
   const [localValue, setLocalValue] = useState(() =>
-    priceInCents !== undefined ? (priceInCents / 100).toString() : ''
+    priceInCents !== undefined ? priceInCents.toString() : ''
   );
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     if (!isFocused) {
-      setLocalValue(priceInCents !== undefined ? (priceInCents / 100).toString() : '');
+      setLocalValue(priceInCents !== undefined ? priceInCents.toString() : '');
     }
   }, [priceInCents, isFocused]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLocalValue(value);
-    const dollars = parseFloat(value);
-    if (!isNaN(dollars)) onChange(Math.round(dollars * 100));
+    const price = parseFloat(value);
+    if (!isNaN(price)) onChange(price);
     else if (value === '') onChange(0);
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    const dollars = parseFloat(localValue);
-    if (!isNaN(dollars)) {
-      setLocalValue(dollars.toFixed(2));
-      onChange(Math.round(dollars * 100));
+    const price = parseFloat(localValue);
+    if (!isNaN(price)) {
+      setLocalValue(price.toString());
+      onChange(price);
     } else {
-      setLocalValue('0.00');
+      setLocalValue('0');
       onChange(0);
     }
   };
@@ -306,6 +306,60 @@ function CategoryPriceInput({
         placeholder="0.00"
         className="w-full pl-6 pr-2 py-1.5 bg-white/[0.06] border border-white/10 rounded-lg text-[13px] text-white text-right focus:outline-none focus:border-white/30 transition-colors"
       />
+    </div>
+  );
+}
+
+// Description editor with local state to prevent data loss on blur
+function DescriptionEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [localValue, setLocalValue] = useState(value);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Sync from parent when not focused (e.g., when data loads)
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value);
+    }
+  }, [value, isFocused]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    onChange(newValue); // Update parent state immediately
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    // Ensure parent state is synced on blur
+    onChange(localValue);
+  };
+
+  return (
+    <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+      <div className="flex items-start gap-3 px-4 py-3.5">
+        <svg className="w-5 h-5 text-white/30 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+        </svg>
+        <textarea
+          value={localValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder="Add description..."
+          rows={3}
+          className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
+        />
+      </div>
     </div>
   );
 }
@@ -343,6 +397,7 @@ export default function EditEvent() {
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
   const [description, setDescription] = useState('');
+  const [hostedBy, setHostedBy] = useState('');
   const [requireApproval, setRequireApproval] = useState(false);
   const [sendQrCode, setSendQrCode] = useState(true);
   const [eventType, setEventType] = useState<EventType>('ga');
@@ -403,6 +458,7 @@ export default function EditEvent() {
         setLocationLat(event.location_lat || null);
         setLocationLng(event.location_lng || null);
         setDescription(event.description || '');
+        setHostedBy(event.hosted_by || '');
         setRequireApproval(event.require_approval || false);
         setSendQrCode(event.send_qr_code !== false); // Default to true
         setEventType(event.event_type || 'ga');
@@ -540,6 +596,7 @@ export default function EditEvent() {
         .update({
           name: eventName,
           description: description || null,
+          hosted_by: hostedBy || null,
           start_date: startDate,
           start_time: startTime,
           end_date: endDate || null,
@@ -821,17 +878,23 @@ export default function EditEvent() {
               </div>
 
               {/* Description */}
+              <DescriptionEditor
+                value={description}
+                onChange={setDescription}
+              />
+
+              {/* Hosted By */}
               <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
-                <div className="flex items-start gap-3 px-4 py-3.5">
-                  <svg className="w-5 h-5 text-white/30 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <svg className="w-5 h-5 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                   </svg>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add description..."
-                    rows={3}
-                    className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
+                  <input
+                    type="text"
+                    value={hostedBy}
+                    onChange={(e) => setHostedBy(e.target.value)}
+                    placeholder="Hosted by..."
+                    className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0"
                   />
                 </div>
               </div>

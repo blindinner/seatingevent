@@ -7,32 +7,31 @@ import { Input, Select, Slider, ColorPicker } from '@/components/ui';
 import type { MapElement, SeatElement, RowElement, SectionElement, StageElement, RectangleElement, TextElement, TableElement, BoothElement, AreaElement, RowLabelPosition, SeatLabelType, TableBookingType, SeatDirection, BackgroundImage } from '@/types/map';
 import { isSegmentedRow } from './RowHandles';
 
-// Format price from cents to display string
-function formatPrice(priceInCents: number | undefined): string {
-  if (priceInCents === undefined || priceInCents === null) return '—';
-  if (priceInCents === 0) return 'Free';
-  return `$${(priceInCents / 100).toFixed(2)}`;
+// Format price for display
+function formatPrice(price: number | undefined): string {
+  if (price === undefined || price === null) return '—';
+  if (price === 0) return 'Free';
+  return `$${price}`;
 }
 
 function CategorySettings() {
   const { map, updateCategory, addCategory, deleteCategory } = useMapStore();
   const categories = map?.categories || [];
 
-  // Convert display value (dollars) to storage value (cents)
-  const handlePriceChange = (categoryId: string, displayValue: string) => {
-    const dollars = parseFloat(displayValue);
-    if (isNaN(dollars) || displayValue === '') {
+  // Handle price change - store the actual value
+  const handlePriceChange = (categoryId: string, value: string) => {
+    const price = parseFloat(value);
+    if (isNaN(price) || value === '') {
       updateCategory(categoryId, { price: undefined });
     } else {
-      // Store as cents
-      updateCategory(categoryId, { price: Math.round(dollars * 100) });
+      updateCategory(categoryId, { price });
     }
   };
 
-  // Convert storage value (cents) to display value (dollars)
-  const getDisplayPrice = (priceInCents: number | undefined): string => {
-    if (priceInCents === undefined || priceInCents === null) return '';
-    return (priceInCents / 100).toFixed(2);
+  // Get display price
+  const getDisplayPrice = (price: number | undefined): string => {
+    if (price === undefined || price === null) return '';
+    return price.toString();
   };
 
   const handleNameChange = (categoryId: string, value: string) => {

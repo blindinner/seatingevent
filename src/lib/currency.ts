@@ -29,15 +29,15 @@ export const SUPPORTED_CURRENCIES: CurrencyConfig[] = [
   { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', decimals: 2 },
 ];
 
-export const DEFAULT_CURRENCY = 'USD';
+export const DEFAULT_CURRENCY = 'ILS';
 
 export function getCurrency(code: string): CurrencyConfig {
   return SUPPORTED_CURRENCIES.find(c => c.code === code) || SUPPORTED_CURRENCIES[0];
 }
 
 /**
- * Format a price in smallest units (cents) to a display string
- * @param amount - Price in smallest currency unit (e.g., cents for USD)
+ * Format a price to a display string
+ * @param amount - Price in display currency (e.g., 5 for 5 NIS)
  * @param currencyCode - ISO 4217 currency code
  * @param options - Formatting options
  */
@@ -56,19 +56,18 @@ export function formatCurrency(
   }
 
   const currency = getCurrency(currencyCode);
-  const value = amount / Math.pow(10, currency.decimals);
 
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
-      minimumFractionDigits: currency.decimals,
+      minimumFractionDigits: 0,
       maximumFractionDigits: currency.decimals,
       notation: compact ? 'compact' : 'standard',
-    }).format(value);
+    }).format(amount);
   } catch {
     // Fallback for unsupported currencies
-    return `${currency.symbol}${value.toFixed(currency.decimals)}`;
+    return `${currency.symbol}${amount}`;
   }
 }
 

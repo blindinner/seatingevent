@@ -79,6 +79,7 @@ export function TicketTierEditor({ tiers, currency, onCurrencyChange, onChange }
             onChange={(updated) => handleTierChange(index, updated)}
             onDelete={() => handleDeleteTier(index)}
             canDelete={tiers.length > 1}
+            defaultExpanded={index === 0}
           />
         ))}
 

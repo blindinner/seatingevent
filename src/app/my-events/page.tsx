@@ -87,6 +87,24 @@ export default function MyEventsPage() {
     event: null,
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [copiedEventId, setCopiedEventId] = useState<string | null>(null);
+
+  // Copy event URL to clipboard
+  const handleCopyLink = async (e: React.MouseEvent, event: UserEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const eventSlug = event.short_id || event.id;
+    const url = `${window.location.origin}/event/${eventSlug}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedEventId(event.id);
+      setTimeout(() => setCopiedEventId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -377,7 +395,7 @@ export default function MyEventsPage() {
                               </svg>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-white">{formatCurrency((event.total_revenue || 0) * 100, event.currency)}</div>
+                              <div className="text-sm font-medium text-white">{formatCurrency(event.total_revenue || 0, event.currency)}</div>
                               <div className="text-[11px] text-white/40">Revenue</div>
                             </div>
                           </div>
@@ -403,8 +421,28 @@ export default function MyEventsPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          View Event
+                          View
                         </Link>
+                        <button
+                          onClick={(e) => handleCopyLink(e, event)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+                        >
+                          {copiedEventId === event.id ? (
+                            <>
+                              <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span className="text-green-400">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                              </svg>
+                              Copy Link
+                            </>
+                          )}
+                        </button>
                         <div className="flex-1" />
                         <button
                           onClick={(e) => handleDeleteClick(e, event)}

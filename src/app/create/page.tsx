@@ -493,17 +493,17 @@ function CategoryPriceInput({
 }: {
   priceInCents: number | undefined;
   currencySymbol: string;
-  onChange: (cents: number) => void;
+  onChange: (price: number) => void;
 }) {
   const [localValue, setLocalValue] = useState(() =>
-    priceInCents !== undefined ? (priceInCents / 100).toString() : ''
+    priceInCents !== undefined ? priceInCents.toString() : ''
   );
   const [isFocused, setIsFocused] = useState(false);
 
   // Update local value when external value changes (but not while focused)
   useEffect(() => {
     if (!isFocused) {
-      setLocalValue(priceInCents !== undefined ? (priceInCents / 100).toString() : '');
+      setLocalValue(priceInCents !== undefined ? priceInCents.toString() : '');
     }
   }, [priceInCents, isFocused]);
 
@@ -512,9 +512,9 @@ function CategoryPriceInput({
     setLocalValue(value);
 
     // Update store in real-time
-    const dollars = parseFloat(value);
-    if (!isNaN(dollars)) {
-      onChange(Math.round(dollars * 100));
+    const price = parseFloat(value);
+    if (!isNaN(price)) {
+      onChange(price);
     } else if (value === '') {
       onChange(0);
     }
@@ -523,12 +523,12 @@ function CategoryPriceInput({
   const handleBlur = () => {
     setIsFocused(false);
     // Format the value on blur
-    const dollars = parseFloat(localValue);
-    if (!isNaN(dollars)) {
-      setLocalValue(dollars.toFixed(2));
-      onChange(Math.round(dollars * 100));
+    const price = parseFloat(localValue);
+    if (!isNaN(price)) {
+      setLocalValue(price.toString());
+      onChange(price);
     } else {
-      setLocalValue('0.00');
+      setLocalValue('0');
       onChange(0);
     }
   };
@@ -1021,6 +1021,7 @@ export default function CreateEvent() {
   const [location, setLocation] = useState('');
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [description, setDescription] = useState('');
+  const [hostedBy, setHostedBy] = useState('');
   const [requireApproval, setRequireApproval] = useState(false);
   const [capacity, setCapacity] = useState('Unlimited');
 
@@ -1145,6 +1146,7 @@ export default function CreateEvent() {
         userId: currentUser.id,
         name: eventName,
         description: description || undefined,
+        hostedBy: hostedBy || undefined,
         startDate,
         startTime,
         endDate: endDate || undefined,
@@ -1227,7 +1229,7 @@ export default function CreateEvent() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 pb-28">
+      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 pb-40">
         <form id="create-event-form" onSubmit={handleSubmit}>
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
             {/* Left Column */}
@@ -1361,7 +1363,7 @@ export default function CreateEvent() {
             </div>
 
             {/* Right Column */}
-            <div className="flex-1 space-y-5">
+            <div className="flex-1 space-y-5 pb-20">
               {/* Event Name */}
               <div>
                 <input
@@ -1544,6 +1546,22 @@ export default function CreateEvent() {
                     placeholder="Add description..."
                     rows={3}
                     className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Hosted By */}
+              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <svg className="w-5 h-5 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={hostedBy}
+                    onChange={(e) => setHostedBy(e.target.value)}
+                    placeholder="Hosted by..."
+                    className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0"
                   />
                 </div>
               </div>

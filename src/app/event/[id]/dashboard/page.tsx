@@ -70,6 +70,7 @@ export default function DashboardPage() {
           shortId: eventData.short_id,
           name: eventData.name,
           description: eventData.description,
+          hostedBy: eventData.hosted_by,
           startDate: eventData.start_date,
           startTime: eventData.start_time,
           endDate: eventData.end_date,

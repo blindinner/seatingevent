@@ -1,7 +1,7 @@
 export interface TicketTier {
   id: string;
   name: string;
-  price: number; // in cents, 0 = free
+  price: number; // 0 = free
   quantity: number; // -1 = unlimited
   description?: string;
 }
@@ -18,6 +18,7 @@ export type EventType = 'ga' | 'seated';
 export interface CreateEventInput {
   name: string;
   description?: string;
+  hostedBy?: string;
   startDate: string;
   startTime: string;
   endDate?: string;
@@ -42,6 +43,7 @@ export interface PublicEvent {
   shortId: string | null;
   name: string;
   description: string | null;
+  hostedBy: string | null;
   startDate: string;
   startTime: string | null;
   endDate: string | null;

@@ -28,12 +28,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     year: 'numeric',
   });
 
+  const description = event.description || `Join us for ${event.name} on ${formattedDate}`;
+
+  // Build OG image with proper metadata for WhatsApp/social platforms
+  const ogImages = event.coverImageUrl
+    ? [{
+        url: event.coverImageUrl,
+        width: 800,
+        height: 1000,
+        alt: event.name,
+      }]
+    : [];
+
   return {
     title: event.name,
-    description: event.description || `Join us for ${event.name} on ${formattedDate}`,
+    description,
     openGraph: {
       title: event.name,
-      description: event.description || `Join us for ${event.name} on ${formattedDate}`,
+      description,
+      type: 'website',
+      images: ogImages,
+    },
+    twitter: {
+      card: event.coverImageUrl ? 'summary_large_image' : 'summary',
+      title: event.name,
+      description,
       images: event.coverImageUrl ? [event.coverImageUrl] : [],
     },
   };

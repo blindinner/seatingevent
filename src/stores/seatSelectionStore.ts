@@ -12,7 +12,7 @@ export interface SelectedTicket {
   tierId: string;
   tierName: string;
   quantity: number;
-  price: number; // per ticket, in cents
+  price: number; // per ticket
 }
 
 interface SeatSelectionState {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { TicketTier } from '@/types/event';
-import { formatCurrency, getCurrencySymbol, getPricePlaceholder, getCurrency, fromSmallestUnit } from '@/lib/currency';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 
 interface TicketTierCardProps {
   tier: TicketTier;
@@ -10,15 +10,15 @@ interface TicketTierCardProps {
   onChange: (tier: TicketTier) => void;
   onDelete: () => void;
   canDelete: boolean;
+  defaultExpanded?: boolean;
 }
 
-export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete }: TicketTierCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const currencyConfig = getCurrency(currency);
+export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, defaultExpanded = false }: TicketTierCardProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Local state for price input to allow free typing
   const [priceInput, setPriceInput] = useState(() =>
-    tier.price === 0 ? '' : fromSmallestUnit(tier.price, currency).toString()
+    tier.price === 0 ? '' : tier.price.toString()
   );
 
   // Local state for quantity input
@@ -28,7 +28,7 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete }
 
   // Sync local state when tier prop changes (e.g., from parent reset)
   useEffect(() => {
-    setPriceInput(tier.price === 0 ? '' : fromSmallestUnit(tier.price, currency).toString());
+    setPriceInput(tier.price === 0 ? '' : tier.price.toString());
   }, [tier.price, currency]);
 
   useEffect(() => {
@@ -41,12 +41,9 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete }
   };
 
   const handlePriceBlur = () => {
-    // Convert to smallest unit on blur
-    const displayValue = parseFloat(priceInput) || 0;
-    const smallestUnit = Math.round(displayValue * Math.pow(10, currencyConfig.decimals));
-    onChange({ ...tier, price: smallestUnit });
-    // Format the display value
-    setPriceInput(smallestUnit === 0 ? '' : fromSmallestUnit(smallestUnit, currency).toString());
+    const price = parseFloat(priceInput) || 0;
+    onChange({ ...tier, price });
+    setPriceInput(price === 0 ? '' : price.toString());
   };
 
   const handleQuantityBlur = () => {
@@ -120,7 +117,7 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete }
                   value={priceInput}
                   onChange={(e) => setPriceInput(e.target.value)}
                   onBlur={handlePriceBlur}
-                  placeholder={getPricePlaceholder(currency)}
+                  placeholder="0"
                   className="w-full pl-7 pr-3 py-2 text-[14px] text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20 transition-colors"
                 />
               </div>

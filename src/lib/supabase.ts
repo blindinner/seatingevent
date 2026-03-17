@@ -123,6 +123,7 @@ export interface ExtendedDatabaseEvent {
   user_id: string;
   name: string;
   description: string | null;
+  hosted_by: string | null;
   start_date: string;
   start_time: string | null;
   end_date: string | null;
@@ -146,6 +147,10 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
   // Generate a short, URL-friendly ID (10 chars)
   const shortId = nanoid(10);
 
+  // Get the global platform fee configuration
+  const { getFeeConfig } = await import('./financial');
+  const feeConfig = await getFeeConfig();
+
   const { data, error } = await getSupabase()
     .from('events')
     .insert({
@@ -154,6 +159,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       user_id: input.userId,
       name: input.name,
       description: input.description || null,
+      hosted_by: input.hostedBy || null,
       start_date: input.startDate,
       start_time: input.startTime || null,
       end_date: input.endDate || null,
@@ -170,6 +176,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       require_approval: input.requireApproval,
       send_qr_code: input.sendQrCode !== false, // Default to true
       seat_status: {},
+      platform_fee_percent: feeConfig.platformFeePercent, // Use global fee config
     })
     .select()
     .single();
@@ -259,6 +266,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     shortId: event.short_id,
     name: event.name,
     description: event.description,
+    hostedBy: event.hosted_by,
     startDate: event.start_date,
     startTime: event.start_time,
     endDate: event.end_date,

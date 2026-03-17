@@ -376,6 +376,23 @@ export function EventClient({ event, mapData }: EventClientProps) {
               </div>
             )}
 
+            {/* Hosted By */}
+            {event.hostedBy && (
+              <div className="flex items-start gap-5">
+                {/* Host Icon */}
+                <div className="w-16 h-16 rounded-xl bg-white/[0.08] backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                </div>
+                {/* Host Details */}
+                <div className="flex-1 pt-1">
+                  <p className="text-[13px] text-white/40 uppercase tracking-wider font-medium">Hosted by</p>
+                  <p className="text-[17px] text-white font-medium mt-1">{event.hostedBy}</p>
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             {event.description && (
               <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
