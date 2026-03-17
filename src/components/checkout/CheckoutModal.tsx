@@ -530,8 +530,8 @@ export function CheckoutModal({
                     id="allpay-payment-iframe"
                     src={paymentUrl}
                     className="w-full border-0"
-                    style={{ height: '400px', background: 'transparent' }}
-                    allow="payment *; publickey-credentials-get *"
+                    style={{ height: '320px', background: 'transparent' }}
+                    allow="payment *"
                     // @ts-expect-error - allowtransparency is a valid HTML attribute
                     allowtransparency="true"
                     onLoad={initializeAllpay}

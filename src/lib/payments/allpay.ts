@@ -163,8 +163,9 @@ export async function createPayment(
   if (params.addField1) requestBody.add_field_1 = params.addField1;
   if (params.addField2) requestBody.add_field_2 = params.addField2;
   if (params.testMode) requestBody.test_mode = '1';
-  // Apple Pay - only add if explicitly enabled
-  if (params.showApplePay === true) requestBody.show_applepay = 'true';
+  // Apple Pay - control via parameter (true = show, false = hide, undefined = AllPay default)
+  if (params.showApplePay === true) requestBody.show_applepay = 1;
+  if (params.showApplePay === false) requestBody.show_applepay = 0;
 
   // Generate signature
   requestBody.sign = generateSignature(requestBody, config.apiKey);

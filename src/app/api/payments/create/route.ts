@@ -249,6 +249,8 @@ export async function POST(request: NextRequest) {
       addField1: eventId,
       addField2: JSON.stringify(seatIds),
       testMode: isTestMode(),
+      // Hide Apple Pay until properly configured
+      showApplePay: false,
     });
 
     if (!paymentResult.success) {
