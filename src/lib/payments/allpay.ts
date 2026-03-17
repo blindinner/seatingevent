@@ -30,6 +30,8 @@ export interface CreatePaymentParams {
   addField2?: string;
   // Test mode
   testMode?: boolean;
+  // Apple Pay - show Apple Pay button on supported devices
+  showApplePay?: boolean;
 }
 
 export interface PaymentResponse {
@@ -161,6 +163,8 @@ export async function createPayment(
   if (params.addField1) requestBody.add_field_1 = params.addField1;
   if (params.addField2) requestBody.add_field_2 = params.addField2;
   if (params.testMode) requestBody.test_mode = '1';
+  // Apple Pay - enable by default, only disable if explicitly set to false
+  if (params.showApplePay !== false) requestBody.show_applepay = true;
 
   // Generate signature
   requestBody.sign = generateSignature(requestBody, config.apiKey);
