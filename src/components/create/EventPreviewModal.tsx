@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import type { EventType, TicketTier } from '@/types/event';
 import type { MapData } from '@/types/map';
+import type { WhiteLabelTheme } from '@/types/whiteLabel';
 import { SeatMapViewer } from '@/components/event/SeatMapViewer';
+import { BackgroundDecorations } from '@/components/event/BackgroundDecorations';
 import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
 
 interface EventPreviewData {
   name: string;
   description: string;
+  hostedBy: string;
   startDate: string;
   startTime: string;
   endDate: string;
@@ -30,9 +34,10 @@ interface EventPreviewModalProps {
   onClose: () => void;
   eventData: EventPreviewData;
   mapData: MapData | null;
+  whiteLabelTheme?: WhiteLabelTheme | null;
 }
 
-export function EventPreviewModal({ isOpen, onClose, eventData, mapData }: EventPreviewModalProps) {
+export function EventPreviewModal({ isOpen, onClose, eventData, mapData, whiteLabelTheme }: EventPreviewModalProps) {
   const { selectedSeats, getTotalPrice, clearSelection } = useSeatSelectionStore();
 
   const handleGetTickets = () => {
@@ -120,19 +125,27 @@ export function EventPreviewModal({ isOpen, onClose, eventData, mapData }: Event
 
       {/* Main Content - Mirrors create page layout */}
       <div className="flex-1 overflow-auto min-h-screen transition-colors duration-500" style={{ backgroundColor: eventData.themeColor }}>
-        {/* Ambient glow */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.03]" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.02]" />
-        </div>
+        {/* Background decorations - uses white-label theme if available */}
+        <BackgroundDecorations theme={whiteLabelTheme || undefined} />
 
         {/* Navigation */}
         <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${eventData.themeColor}cc` }}>
           <div className="max-w-6xl mx-auto px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-white" />
-              <span className="text-[16px] font-medium text-white/90">seated</span>
-            </div>
+            {whiteLabelTheme?.navLogoUrl ? (
+              <img
+                src={whiteLabelTheme.navLogoUrl}
+                alt={whiteLabelTheme.name}
+                className="max-h-10 w-auto"
+              />
+            ) : (
+              <Image
+                src="/logo.png"
+                alt="Seated"
+                width={144}
+                height={144}
+                className="max-h-9 w-auto"
+              />
+            )}
             {/* Show selection summary in nav when seats selected */}
             {selectedSeats.length > 0 && (
               <div className="flex items-center gap-4">
@@ -244,6 +257,23 @@ export function EventPreviewModal({ isOpen, onClose, eventData, mapData }: Event
                     {eventData.location.includes(',') && (
                       <p className="text-[15px] text-white/60 mt-1">{eventData.location.split(',').slice(1).join(',').trim()}</p>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Hosted By */}
+              {eventData.hostedBy && (
+                <div className="flex items-start gap-5">
+                  {/* Host Icon */}
+                  <div className="w-16 h-16 rounded-xl bg-white/[0.08] backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                  </div>
+                  {/* Host Details */}
+                  <div className="flex-1 pt-1">
+                    <p className="text-[13px] text-white/40 uppercase tracking-wider font-medium">Hosted by</p>
+                    <p className="text-[17px] text-white font-medium mt-1">{eventData.hostedBy}</p>
                   </div>
                 </div>
               )}

@@ -135,11 +135,24 @@ export async function POST(request: NextRequest) {
           // Fetch event details with owner info and email settings
           const { data: event } = await supabaseAdmin.client
             .from('events')
-            .select('name, start_date, start_time, location, user_id, email_settings, send_qr_code')
+            .select('name, start_date, start_time, location, user_id, email_settings, send_qr_code, white_label_theme_id')
             .eq('id', eventId)
             .single();
 
           if (event) {
+            // Fetch white-label theme if set
+            let whiteLabelTheme: { logoUrl: string | null; name: string } | undefined;
+            if (event.white_label_theme_id) {
+              const { getThemeById } = await import('@/lib/whiteLabel');
+              const theme = await getThemeById(event.white_label_theme_id);
+              if (theme) {
+                whiteLabelTheme = {
+                  logoUrl: theme.emailLogoUrl || theme.navLogoUrl,
+                  name: theme.name,
+                };
+              }
+            }
+
             // Get seat details from order metadata
             const seatDetails = (order.metadata?.seats as Array<{ label: string; category: string }>) ||
               seatIds.map(id => ({ label: id, category: 'General' }));
@@ -157,6 +170,7 @@ export async function POST(request: NextRequest) {
               currency: order.currency,
               emailSettings: event.email_settings || undefined,
               sendQrCode: event.send_qr_code !== false,
+              whiteLabelTheme,
             });
 
             if (emailResult.success) {

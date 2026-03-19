@@ -147,6 +147,10 @@ export interface TicketEmailData {
   currency: string;
   emailSettings?: EmailSettings;
   sendQrCode?: boolean; // Whether to include QR code in email (default true)
+  whiteLabelTheme?: {
+    logoUrl: string | null;
+    name: string;
+  };
 }
 
 export async function sendTicketEmail(data: TicketEmailData): Promise<{ success: boolean; error?: string }> {
@@ -217,6 +221,15 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
             <tr>
               <td align="center">
                 <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #18181b; border-radius: 16px; overflow: hidden;">
+
+                  ${data.whiteLabelTheme?.logoUrl ? `
+                  <!-- White-Label Logo -->
+                  <tr>
+                    <td style="padding: 24px 32px 16px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                      <img src="${data.whiteLabelTheme.logoUrl}" alt="${data.whiteLabelTheme.name}" style="max-height: 48px; max-width: 200px;" />
+                    </td>
+                  </tr>
+                  ` : ''}
 
                   <!-- Header -->
                   <tr>

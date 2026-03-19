@@ -11,6 +11,8 @@ import { EventTypeSelector } from '@/components/create/EventTypeSelector';
 import { TicketTierEditor } from '@/components/create/TicketTierEditor';
 import { SeatMapEditorModal } from '@/components/create/SeatMapEditorModal';
 import { CurrencySelector } from '@/components/create/CurrencySelector';
+import { WhiteLabelThemeSelector } from '@/components/create/WhiteLabelThemeSelector';
+import { BackgroundDecorations } from '@/components/event/BackgroundDecorations';
 import { useMapStore } from '@/stores/mapStore';
 import { formatCurrency, formatCurrencyRange, getCurrencySymbol, DEFAULT_CURRENCY } from '@/lib/currency';
 import { getUser } from '@/lib/auth';
@@ -216,6 +218,39 @@ interface PlaceSuggestion {
   placeId: string;
   mainText: string;
   secondaryText: string;
+}
+
+// Geocode an address to get coordinates using Google Places Text Search
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey || !address.trim()) return null;
+
+  try {
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.location',
+      },
+      body: JSON.stringify({
+        textQuery: address,
+        maxResultCount: 1,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.places?.[0]?.location) {
+      return {
+        lat: data.places[0].location.latitude,
+        lng: data.places[0].location.longitude,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error geocoding address:', error);
+    return null;
+  }
 }
 
 // Address Autocomplete Component (using Places API New)
@@ -1044,6 +1079,8 @@ export default function CreateEvent() {
   // Theme state
   const [selectedColor, setSelectedColor] = useState(themeColors[1]); // stone default
   const [selectedFont, setSelectedFont] = useState(themeFonts[0]);
+  const [whiteLabelThemeId, setWhiteLabelThemeId] = useState<string | null>(null);
+  const [whiteLabelTheme, setWhiteLabelTheme] = useState<import('@/types/whiteLabel').WhiteLabelTheme | null>(null);
 
   // Calculate ticket summary for display
   const getTicketSummary = () => {
@@ -1162,6 +1199,7 @@ export default function CreateEvent() {
         themeFont: selectedFont.id,
         requireApproval,
         sendQrCode: isFreeEvent ? sendQrCode : true, // Only applies to free events
+        whiteLabelThemeId: whiteLabelThemeId || undefined,
       });
 
       // 4. Redirect to event page using short_id for nicer URLs
@@ -1175,23 +1213,28 @@ export default function CreateEvent() {
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: selectedColor.bg }}>
-      {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.03]" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.02]" />
-      </div>
+      {/* Background decorations - uses white-label theme if selected */}
+      <BackgroundDecorations theme={whiteLabelTheme || undefined} />
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${selectedColor.bg}cc` }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="group">
-            <Image
-              src="/logo.png"
-              alt="Seated"
-              width={144}
-              height={144}
-              className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
-            />
+            {whiteLabelTheme?.navLogoUrl ? (
+              <img
+                src={whiteLabelTheme.navLogoUrl}
+                alt={whiteLabelTheme.name}
+                className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
+              />
+            ) : (
+              <Image
+                src="/logo.png"
+                alt="Seated"
+                width={144}
+                height={144}
+                className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
+              />
+            )}
           </Link>
           <div className="flex items-center gap-3">
             {/* User indicator */}
@@ -1566,6 +1609,34 @@ export default function CreateEvent() {
                 </div>
               </div>
 
+              {/* White-Label Theme Selector (only shows if user has access) */}
+              {user?.email && (
+                <WhiteLabelThemeSelector
+                  userEmail={user.email}
+                  selectedThemeId={whiteLabelThemeId}
+                  onChange={async (id, theme) => {
+                    setWhiteLabelThemeId(id);
+                    setWhiteLabelTheme(theme);
+                    // Apply brand color if theme has one
+                    if (theme?.brandColor) {
+                      setSelectedColor({ id: 'brand', name: 'Brand', bg: theme.brandColor });
+                    }
+                    // Auto-fill hosted by and location from theme defaults
+                    if (theme?.defaultHostedBy) {
+                      setHostedBy(theme.defaultHostedBy);
+                    }
+                    if (theme?.defaultLocation) {
+                      setLocation(theme.defaultLocation);
+                      // Geocode the location to get coordinates and show the map
+                      const coords = await geocodeAddress(theme.defaultLocation);
+                      if (coords) {
+                        setLocationCoords(coords);
+                      }
+                    }
+                  }}
+                />
+              )}
+
               {/* Event Type Selector */}
               <div className="space-y-3">
                 <p className="text-[12px] text-white/40 uppercase tracking-wider px-1">Event Type</p>
@@ -1874,6 +1945,7 @@ export default function CreateEvent() {
         eventData={{
           name: eventName,
           description,
+          hostedBy,
           startDate,
           startTime,
           endDate,
@@ -1888,6 +1960,7 @@ export default function CreateEvent() {
           themeFont: selectedFont.id,
         }}
         mapData={map}
+        whiteLabelTheme={whiteLabelTheme}
       />
     </div>
   );

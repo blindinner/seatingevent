@@ -90,6 +90,7 @@ export default function DashboardPage() {
           userId: eventData.user_id,
           createdAt: eventData.created_at,
           seatStatus,
+          whiteLabelThemeId: eventData.white_label_theme_id || null,
         };
         setEvent(publicEvent);
 

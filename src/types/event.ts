@@ -36,7 +36,10 @@ export interface CreateEventInput {
   sendQrCode?: boolean; // Whether to include QR code in confirmation emails (free events only)
   mapId?: string;
   userId: string;
+  whiteLabelThemeId?: string;
 }
+
+import type { WhiteLabelTheme } from './whiteLabel';
 
 export interface PublicEvent {
   id: string;
@@ -64,4 +67,6 @@ export interface PublicEvent {
   createdAt: string;
   seatStatus: Record<string, string>; // seatId -> status (e.g., "sold:orderId")
   emailSettings?: EmailSettings;
+  whiteLabelThemeId: string | null;
+  whiteLabelTheme?: WhiteLabelTheme;
 }

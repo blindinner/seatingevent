@@ -40,6 +40,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if event has ended
+    const { data: eventCheck } = await supabaseAdmin.client
+      .from('events')
+      .select('start_date, start_time, end_date, end_time')
+      .eq('id', eventId)
+      .single();
+
+    if (eventCheck) {
+      const now = new Date();
+      const eventEndDate = eventCheck.end_date || eventCheck.start_date;
+      const eventEndTime = eventCheck.end_time || eventCheck.start_time || '23:59';
+
+      const endDate = new Date(eventEndDate);
+      const [hours, minutes] = eventEndTime.split(':').map(Number);
+      endDate.setHours(hours, minutes, 0, 0);
+
+      if (now > endDate) {
+        return NextResponse.json(
+          { error: 'This event has already ended. Tickets are no longer available.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Calculate total - prices are in display currency
     const seatsTotal = selectedSeats.reduce(
       (sum: number, seat: { price: number }) => sum + seat.price,
@@ -115,9 +139,22 @@ export async function POST(request: NextRequest) {
       // Fetch event details for email
       const { data: eventData } = await supabaseAdmin.client
         .from('events')
-        .select('name, start_date, start_time, location, email_settings, send_qr_code')
+        .select('name, start_date, start_time, location, email_settings, send_qr_code, white_label_theme_id')
         .eq('id', eventId)
         .single();
+
+      // Fetch white-label theme if set
+      let whiteLabelTheme: { logoUrl: string | null; name: string } | undefined;
+      if (eventData?.white_label_theme_id) {
+        const { getThemeById } = await import('@/lib/whiteLabel');
+        const theme = await getThemeById(eventData.white_label_theme_id);
+        if (theme) {
+          whiteLabelTheme = {
+            logoUrl: theme.emailLogoUrl || theme.navLogoUrl,
+            name: theme.name,
+          };
+        }
+      }
 
       // Send confirmation email
       if (eventData && customer.email && order.ticketCode) {
@@ -153,6 +190,7 @@ export async function POST(request: NextRequest) {
             currency,
             emailSettings: eventData.email_settings || undefined,
             sendQrCode: sendQrCodeValue,
+            whiteLabelTheme,
           });
           console.log('Email result:', emailResult);
         } catch (emailError) {

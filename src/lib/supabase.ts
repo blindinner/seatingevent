@@ -141,6 +141,7 @@ export interface ExtendedDatabaseEvent {
   send_qr_code: boolean;
   seat_status: Record<string, string>;
   created_at: string;
+  white_label_theme_id: string | null;
 }
 
 export async function createExtendedEvent(input: CreateEventInput): Promise<ExtendedDatabaseEvent> {
@@ -177,6 +178,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       send_qr_code: input.sendQrCode !== false, // Default to true
       seat_status: {},
       platform_fee_percent: feeConfig.platformFeePercent, // Use global fee config
+      white_label_theme_id: input.whiteLabelThemeId || null,
     })
     .select()
     .single();
@@ -261,6 +263,13 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
   // Get seat status from bookings (source of truth) - use the actual UUID id
   const seatStatus = await getSeatStatusFromBookings(event.id, supabaseAdmin.client);
 
+  // Fetch white-label theme if set
+  let whiteLabelTheme;
+  if (event.white_label_theme_id) {
+    const { getThemeById } = await import('./whiteLabel');
+    whiteLabelTheme = await getThemeById(event.white_label_theme_id) || undefined;
+  }
+
   return {
     id: event.id,
     shortId: event.short_id,
@@ -286,6 +295,8 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     userId: event.user_id,
     createdAt: event.created_at,
     seatStatus,
+    whiteLabelThemeId: event.white_label_theme_id,
+    whiteLabelTheme,
   };
 }
 

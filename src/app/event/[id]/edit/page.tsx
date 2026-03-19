@@ -10,6 +10,8 @@ import { EventTypeSelector } from '@/components/create/EventTypeSelector';
 import { TicketTierEditor } from '@/components/create/TicketTierEditor';
 import { SeatMapEditorModal } from '@/components/create/SeatMapEditorModal';
 import { CurrencySelector } from '@/components/create/CurrencySelector';
+import { WhiteLabelThemeSelector } from '@/components/create/WhiteLabelThemeSelector';
+import { BackgroundDecorations } from '@/components/event/BackgroundDecorations';
 import { useMapStore } from '@/stores/mapStore';
 import { formatCurrency, formatCurrencyRange, getCurrencySymbol, DEFAULT_CURRENCY } from '@/lib/currency';
 import { getSupabaseClient } from '@/lib/auth';
@@ -28,6 +30,39 @@ function formatLocalDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// Geocode an address to get coordinates using Google Places Text Search
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey || !address.trim()) return null;
+
+  try {
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.location',
+      },
+      body: JSON.stringify({
+        textQuery: address,
+        maxResultCount: 1,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.places?.[0]?.location) {
+      return {
+        lat: data.places[0].location.latitude,
+        lng: data.places[0].location.longitude,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error geocoding address:', error);
+    return null;
+  }
 }
 
 // Calendar Picker Component
@@ -412,6 +447,8 @@ export default function EditEvent() {
   const [openPicker, setOpenPicker] = useState<'startDate' | 'startTime' | 'endDate' | 'endTime' | null>(null);
   const [selectedColor, setSelectedColor] = useState(themeColors[1]);
   const [selectedFont, setSelectedFont] = useState(themeFonts[0]);
+  const [whiteLabelThemeId, setWhiteLabelThemeId] = useState<string | null>(null);
+  const [whiteLabelTheme, setWhiteLabelTheme] = useState<import('@/types/whiteLabel').WhiteLabelTheme | null>(null);
 
   const startDateRef = useRef<HTMLButtonElement>(null);
   const startTimeRef = useRef<HTMLButtonElement>(null);
@@ -476,6 +513,20 @@ export default function EditEvent() {
         // Find matching font
         const matchingFont = themeFonts.find(f => f.id === event.theme_font);
         if (matchingFont) setSelectedFont(matchingFont);
+
+        // Load white-label theme if set
+        if (event.white_label_theme_id) {
+          setWhiteLabelThemeId(event.white_label_theme_id);
+          // Fetch the theme details
+          const { getThemeById } = await import('@/lib/whiteLabel');
+          const theme = await getThemeById(event.white_label_theme_id);
+          if (theme) {
+            setWhiteLabelTheme(theme);
+            if (theme.brandColor) {
+              setSelectedColor({ id: 'brand', name: 'Brand', bg: theme.brandColor });
+            }
+          }
+        }
 
         // Load map if seated event
         if (event.map_id) {
@@ -612,6 +663,7 @@ export default function EditEvent() {
           theme_font: selectedFont.id,
           require_approval: requireApproval,
           send_qr_code: isFreeEvent ? sendQrCode : true, // Only applies to free events
+          white_label_theme_id: whiteLabelThemeId || null,
         })
         .eq('id', eventId);
 
@@ -638,11 +690,8 @@ export default function EditEvent() {
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: selectedColor.bg }}>
-      {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.03]" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.02]" />
-      </div>
+      {/* Background decorations - uses white-label theme if selected */}
+      <BackgroundDecorations theme={whiteLabelTheme || undefined} />
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${selectedColor.bg}cc` }}>
@@ -875,6 +924,18 @@ export default function EditEvent() {
                     </button>
                   )}
                 </div>
+                {/* Google Maps Embed */}
+                {locationLat && locationLng && location && (
+                  <div className="relative">
+                    <iframe
+                      src={`https://www.google.com/maps?q=${encodeURIComponent(location)}&z=15&output=embed`}
+                      className="w-full h-48 border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                    <div className="absolute inset-0 pointer-events-none border-t border-white/[0.06]" />
+                  </div>
+                )}
               </div>
 
               {/* Description */}
@@ -898,6 +959,35 @@ export default function EditEvent() {
                   />
                 </div>
               </div>
+
+              {/* White-Label Theme Selector (only shows if user has access) */}
+              {user?.email && (
+                <WhiteLabelThemeSelector
+                  userEmail={user.email}
+                  selectedThemeId={whiteLabelThemeId}
+                  onChange={async (id, theme) => {
+                    setWhiteLabelThemeId(id);
+                    setWhiteLabelTheme(theme);
+                    // Apply brand color if theme has one
+                    if (theme?.brandColor) {
+                      setSelectedColor({ id: 'brand', name: 'Brand', bg: theme.brandColor });
+                    }
+                    // Auto-fill hosted by and location from theme defaults
+                    if (theme?.defaultHostedBy) {
+                      setHostedBy(theme.defaultHostedBy);
+                    }
+                    if (theme?.defaultLocation) {
+                      setLocation(theme.defaultLocation);
+                      // Geocode the location to get coordinates and show the map
+                      const coords = await geocodeAddress(theme.defaultLocation);
+                      if (coords) {
+                        setLocationLat(coords.lat);
+                        setLocationLng(coords.lng);
+                      }
+                    }
+                  }}
+                />
+              )}
 
               {/* Event Type Selector */}
               <div className="space-y-3">

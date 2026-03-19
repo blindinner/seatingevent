@@ -7,6 +7,7 @@ import type { PublicEvent } from '@/types/event';
 import type { MapData } from '@/types/map';
 import { SeatMapViewer } from '@/components/event/SeatMapViewer';
 import { TicketSelector } from '@/components/event/TicketSelector';
+import { BackgroundDecorations } from '@/components/event/BackgroundDecorations';
 import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
 import { CheckoutModal } from '@/components/checkout/CheckoutModal';
@@ -231,23 +232,28 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
   return (
     <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: themeColor }}>
-      {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.03]" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-[100px] bg-white/[0.02]" />
-      </div>
+      {/* Background decorations - uses white-label theme if available */}
+      <BackgroundDecorations theme={event.whiteLabelTheme} />
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${themeColor}cc` }}>
         <div className="max-w-6xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="group">
-            <NextImage
-              src="/logo.png"
-              alt="Seated"
-              width={168}
-              height={168}
-              className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
-            />
+            {event.whiteLabelTheme?.navLogoUrl ? (
+              <img
+                src={event.whiteLabelTheme.navLogoUrl}
+                alt={event.whiteLabelTheme.name}
+                className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+              />
+            ) : (
+              <NextImage
+                src="/logo.png"
+                alt="Seated"
+                width={168}
+                height={168}
+                className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+              />
+            )}
           </Link>
           <div className="flex items-center gap-4">
             {/* Owner Dashboard Link */}
