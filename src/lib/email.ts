@@ -150,6 +150,7 @@ export interface TicketEmailData {
   whiteLabelTheme?: {
     logoUrl: string | null;
     name: string;
+    fromName: string | null;
   };
 }
 
@@ -178,7 +179,8 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
 
   // Use Resend's test email as default (works without domain verification)
   const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-  const fromName = process.env.EMAIL_FROM_NAME || 'Rendeza';
+  // Use white-label theme's from name if provided, otherwise default
+  const fromName = data.whiteLabelTheme?.fromName || process.env.EMAIL_FROM_NAME || 'Rendeza';
 
   // Build verification URL for QR code
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seatingevent-j3ip.vercel.app';

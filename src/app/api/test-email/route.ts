@@ -1,66 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendTicketEmail } from '@/lib/email';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 
-// Test endpoint - remove in production
-export async function GET(request: NextRequest) {
-  const bookingId = request.nextUrl.searchParams.get('booking_id');
+export async function POST(request: NextRequest) {
+  const { email } = await request.json();
 
-  if (!bookingId) {
-    return NextResponse.json({ error: 'Missing booking_id' }, { status: 400 });
+  if (!email) {
+    return NextResponse.json({ error: 'Email required' }, { status: 400 });
   }
-
-  // Get booking with event details
-  const { data: booking, error: bookingError } = await supabaseAdmin.client
-    .from('bookings')
-    .select(`
-      *,
-      events:event_id (
-        name,
-        start_date,
-        start_time,
-        location
-      )
-    `)
-    .eq('id', bookingId)
-    .single();
-
-  if (bookingError || !booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-  }
-
-  const event = booking.events as { name: string; start_date: string; start_time: string; location: string };
-  const seatDetails = (booking.metadata?.seats as Array<{ label: string; category: string }>) || [];
 
   const result = await sendTicketEmail({
-    to: booking.customer_email,
-    customerName: booking.customer_name || 'Guest',
-    eventName: event.name,
-    eventDate: event.start_date,
-    eventTime: event.start_time || undefined,
-    eventLocation: event.location || undefined,
-    seats: seatDetails,
-    ticketCode: booking.ticket_code || 'N/A',
-    totalAmount: booking.amount_paid,
-    currency: booking.currency,
+    to: email,
+    customerName: 'Test Customer',
+    eventName: 'Soho House Test Event',
+    eventDate: '2025-04-15',
+    eventTime: '20:00',
+    eventLocation: 'Yefet 27, Tel Aviv',
+    seats: [
+      { label: 'Table 5', category: 'VIP' },
+    ],
+    ticketCode: 'TEST123',
+    totalAmount: 150,
+    currency: 'ILS',
+    whiteLabelTheme: {
+      logoUrl: 'https://companieslogo.com/img/orig/SHCO_BIG.D-25ccde3e.png',
+      name: 'Soho House Tel Aviv',
+      fromName: 'Soho House Tel Aviv',
+    },
   });
 
   if (result.success) {
-    // Update ticket_sent_at
-    await supabaseAdmin.client
-      .from('bookings')
-      .update({ ticket_sent_at: new Date().toISOString() })
-      .eq('id', bookingId);
-
-    return NextResponse.json({
-      success: true,
-      message: `Email sent to ${booking.customer_email}`,
-      ticketCode: booking.ticket_code,
-    });
+    return NextResponse.json({ success: true, message: `Test email sent to ${email}` });
+  } else {
+    return NextResponse.json({ error: result.error }, { status: 500 });
   }
-
-  return NextResponse.json({
-    success: false,
-    error: result.error
-  }, { status: 500 });
 }

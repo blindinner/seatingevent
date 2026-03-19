@@ -31,6 +31,7 @@ export interface WhiteLabelTheme {
   slug: string;
   navLogoUrl: string;
   emailLogoUrl: string | null;
+  emailFromName: string | null;
   backgroundConfig: BackgroundConfig;
   brandColor: string | null;
   defaultHostedBy: string | null;

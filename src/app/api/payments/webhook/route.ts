@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
           if (event) {
             // Fetch white-label theme if set
-            let whiteLabelTheme: { logoUrl: string | null; name: string } | undefined;
+            let whiteLabelTheme: { logoUrl: string | null; name: string; fromName: string | null } | undefined;
             if (event.white_label_theme_id) {
               const { getThemeById } = await import('@/lib/whiteLabel');
               const theme = await getThemeById(event.white_label_theme_id);
@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
                 whiteLabelTheme = {
                   logoUrl: theme.emailLogoUrl || theme.navLogoUrl,
                   name: theme.name,
+                  fromName: theme.emailFromName,
                 };
               }
             }
