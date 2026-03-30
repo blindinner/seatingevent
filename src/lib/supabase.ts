@@ -119,6 +119,7 @@ export async function createEvent(event: Omit<DatabaseEvent, 'id' | 'created_at'
 export interface ExtendedDatabaseEvent {
   id: string;
   short_id: string | null;
+  slug: string | null;
   map_id: string | null;
   user_id: string;
   name: string;
@@ -137,6 +138,7 @@ export interface ExtendedDatabaseEvent {
   currency: string;
   theme_color: string | null;
   theme_font: string | null;
+  accent_color: string | null;
   require_approval: boolean;
   send_qr_code: boolean;
   seat_status: Record<string, string>;
@@ -156,6 +158,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
     .from('events')
     .insert({
       short_id: shortId,
+      slug: input.slug || null,
       map_id: input.mapId || null,
       user_id: input.userId,
       name: input.name,
@@ -174,6 +177,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       currency: input.currency,
       theme_color: input.themeColor || null,
       theme_font: input.themeFont || null,
+      accent_color: input.accentColor || null,
       require_approval: input.requireApproval,
       send_qr_code: input.sendQrCode !== false, // Default to true
       seat_status: {},
@@ -273,6 +277,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
   return {
     id: event.id,
     shortId: event.short_id,
+    slug: event.slug,
     name: event.name,
     description: event.description,
     hostedBy: event.hosted_by,
@@ -289,6 +294,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     currency: event.currency,
     themeColor: event.theme_color,
     themeFont: event.theme_font,
+    accentColor: event.accent_color,
     requireApproval: event.require_approval,
     sendQrCode: event.send_qr_code !== false, // Default to true for backwards compatibility
     mapId: event.map_id,
@@ -297,6 +303,65 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     seatStatus,
     whiteLabelThemeId: event.white_label_theme_id,
     whiteLabelTheme,
+  };
+}
+
+// Get event by branded URL (theme slug + event slug)
+export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string): Promise<PublicEvent | null> {
+  const { supabaseAdmin } = await import('./supabase-admin');
+  const { getThemeBySlug } = await import('./whiteLabel');
+
+  // First, look up the theme by slug
+  const theme = await getThemeBySlug(themeSlug);
+  if (!theme) return null;
+
+  // Then look up the event by theme ID and event slug
+  const { data, error } = await supabaseAdmin.client
+    .from('events')
+    .select('*')
+    .eq('white_label_theme_id', theme.id)
+    .eq('slug', eventSlug)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    throw error;
+  }
+
+  const event = data as ExtendedDatabaseEvent;
+
+  // Get seat status from bookings
+  const seatStatus = await getSeatStatusFromBookings(event.id, supabaseAdmin.client);
+
+  return {
+    id: event.id,
+    shortId: event.short_id,
+    slug: event.slug,
+    name: event.name,
+    description: event.description,
+    hostedBy: event.hosted_by,
+    startDate: event.start_date,
+    startTime: event.start_time,
+    endDate: event.end_date,
+    endTime: event.end_time,
+    location: event.location,
+    locationLat: event.location_lat,
+    locationLng: event.location_lng,
+    coverImageUrl: event.cover_image_url,
+    eventType: event.event_type,
+    ticketTiers: event.ticket_tiers,
+    currency: event.currency,
+    themeColor: event.theme_color,
+    themeFont: event.theme_font,
+    accentColor: event.accent_color,
+    requireApproval: event.require_approval,
+    sendQrCode: event.send_qr_code !== false,
+    mapId: event.map_id,
+    userId: event.user_id,
+    createdAt: event.created_at,
+    seatStatus,
+    whiteLabelThemeId: event.white_label_theme_id,
+    whiteLabelTheme: theme,
   };
 }
 

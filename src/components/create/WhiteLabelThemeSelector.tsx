@@ -7,12 +7,14 @@ interface WhiteLabelThemeSelectorProps {
   userEmail: string;
   selectedThemeId: string | null;
   onChange: (themeId: string | null, theme: WhiteLabelTheme | null) => void;
+  isDarkMode?: boolean;
 }
 
 export function WhiteLabelThemeSelector({
   userEmail,
   selectedThemeId,
   onChange,
+  isDarkMode = true,
 }: WhiteLabelThemeSelectorProps) {
   const [themes, setThemes] = useState<WhiteLabelTheme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,12 +49,12 @@ export function WhiteLabelThemeSelector({
   const selectedTheme = themes.find(t => t.id === selectedThemeId);
 
   return (
-    <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
-      <div className="px-6 py-5 border-b border-white/[0.03]">
-        <h3 className="text-[13px] text-white/40 uppercase tracking-wider font-medium mb-1">
+    <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+      <div className={`px-6 py-5 border-b ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
+        <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
           White-Label Theme
         </h3>
-        <p className="text-[15px] text-white/70">
+        <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>
           Customize the event page branding
         </p>
       </div>
@@ -65,8 +67,8 @@ export function WhiteLabelThemeSelector({
             onClick={() => onChange(null, null)}
             className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-all ${
               !selectedThemeId
-                ? 'bg-white text-black'
-                : 'bg-white/[0.08] text-white/70 hover:bg-white/[0.12]'
+                ? isDarkMode ? 'bg-white text-black' : 'bg-zinc-900 text-white'
+                : isDarkMode ? 'bg-white/[0.08] text-white/70 hover:bg-white/[0.12]' : 'bg-black/[0.06] text-zinc-700 hover:bg-black/[0.1]'
             }`}
           >
             Default (Seated)
@@ -80,8 +82,8 @@ export function WhiteLabelThemeSelector({
               onClick={() => onChange(theme.id, theme)}
               className={`px-4 py-2.5 rounded-xl text-[14px] font-medium transition-all ${
                 selectedThemeId === theme.id
-                  ? 'bg-white text-black'
-                  : 'bg-white/[0.08] text-white/70 hover:bg-white/[0.12]'
+                  ? isDarkMode ? 'bg-white text-black' : 'bg-zinc-900 text-white'
+                  : isDarkMode ? 'bg-white/[0.08] text-white/70 hover:bg-white/[0.12]' : 'bg-black/[0.06] text-zinc-700 hover:bg-black/[0.1]'
               }`}
             >
               {theme.name}
@@ -91,7 +93,7 @@ export function WhiteLabelThemeSelector({
 
         {/* Preview of selected theme */}
         {selectedTheme && (
-          <div className="mt-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+          <div className={`mt-4 p-4 rounded-xl border ${isDarkMode ? 'bg-white/[0.04] border-white/[0.06]' : 'bg-black/[0.02] border-black/[0.06]'}`}>
             <div className="flex items-center gap-4">
               <img
                 src={selectedTheme.navLogoUrl}
@@ -99,8 +101,8 @@ export function WhiteLabelThemeSelector({
                 className="h-8 w-auto object-contain"
               />
               <div>
-                <p className="text-[13px] text-white/60">Theme Preview</p>
-                <p className="text-[14px] text-white/90">{selectedTheme.name}</p>
+                <p className={`text-[13px] ${isDarkMode ? 'text-white/60' : 'text-zinc-500'}`}>Theme Preview</p>
+                <p className={`text-[14px] ${isDarkMode ? 'text-white/90' : 'text-zinc-800'}`}>{selectedTheme.name}</p>
               </div>
             </div>
           </div>

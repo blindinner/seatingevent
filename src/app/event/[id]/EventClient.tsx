@@ -14,6 +14,7 @@ import { CheckoutModal } from '@/components/checkout/CheckoutModal';
 import { subscribeToEventSeats } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePageView } from '@/hooks/usePageView';
+import { SocialLinks } from '@/components/ui/SocialLinks';
 
 // Adaptive cover image that handles both portrait and landscape images
 function AdaptiveCoverImage({ src, alt }: { src: string; alt: string }) {
@@ -214,6 +215,19 @@ export function EventClient({ event, mapData }: EventClientProps) {
   const themeColor = event.themeColor || '#1c1917';
   const themeFont = event.themeFont || 'default';
   const fontClass = themeFont === 'serif' ? 'font-serif' : themeFont === 'mono' ? 'font-mono' : 'font-sans';
+  const accentColor = event.accentColor || null;
+
+  // Determine if accent color needs dark text (for light accent colors)
+  const needsDarkText = (color: string) => {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 155;
+  };
+
+  const buttonTextColor = accentColor && needsDarkText(accentColor) ? '#000' : accentColor ? '#fff' : 'black';
 
   const handleGetTickets = () => {
     if (hasSelection) {
@@ -238,23 +252,33 @@ export function EventClient({ event, mapData }: EventClientProps) {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${themeColor}cc` }}>
         <div className="max-w-6xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="group">
-            {event.whiteLabelTheme?.navLogoUrl ? (
+          {event.whiteLabelTheme?.logoDestinationUrl ? (
+            <a href={event.whiteLabelTheme.logoDestinationUrl} className="group" target="_blank" rel="noopener noreferrer">
               <img
                 src={event.whiteLabelTheme.navLogoUrl}
                 alt={event.whiteLabelTheme.name}
                 className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
               />
-            ) : (
-              <NextImage
-                src="/logo.png"
-                alt="Seated"
-                width={168}
-                height={168}
-                className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
-              />
-            )}
-          </Link>
+            </a>
+          ) : (
+            <Link href="/" className="group">
+              {event.whiteLabelTheme?.navLogoUrl ? (
+                <img
+                  src={event.whiteLabelTheme.navLogoUrl}
+                  alt={event.whiteLabelTheme.name}
+                  className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+                />
+              ) : (
+                <NextImage
+                  src="/logo.png"
+                  alt="Seated"
+                  width={168}
+                  height={168}
+                  className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+                />
+              )}
+            </Link>
+          )}
           <div className="flex items-center gap-4">
             {/* Owner Dashboard Link */}
             {isOwner && (
@@ -276,7 +300,11 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 </span>
                 <button
                   onClick={handleGetTickets}
-                  className="h-10 px-6 text-[14px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
+                  className="h-10 px-6 text-[14px] font-semibold rounded-full transition-colors"
+                  style={{
+                    backgroundColor: accentColor || 'white',
+                    color: buttonTextColor,
+                  }}
                 >
                   Get Tickets
                 </button>
@@ -328,7 +356,11 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   </div>
                   <button
                     onClick={handleGetTickets}
-                    className="w-full py-3.5 text-[15px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
+                    className="w-full py-3.5 text-[15px] font-semibold rounded-full transition-colors"
+                    style={{
+                      backgroundColor: accentColor || 'white',
+                      color: buttonTextColor,
+                    }}
                   >
                     Get Tickets
                   </button>
@@ -395,6 +427,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 <div className="flex-1 pt-1">
                   <p className="text-[13px] text-white/40 uppercase tracking-wider font-medium">Hosted by</p>
                   <p className="text-[17px] text-white font-medium mt-1">{event.hostedBy}</p>
+                  {/* Social Links */}
+                  {event.whiteLabelTheme?.socialLinks && (
+                    <SocialLinks links={event.whiteLabelTheme.socialLinks} className="mt-3" iconSize="sm" />
+                  )}
                 </div>
               </div>
             )}
@@ -441,6 +477,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   compact={true}
                   height="h-[420px]"
                   seatStatus={liveSeatStatus}
+                  accentColor={accentColor || undefined}
                 />
               </div>
             )}
@@ -470,7 +507,11 @@ export function EventClient({ event, mapData }: EventClientProps) {
                       </div>
                       <button
                         onClick={handleGetTickets}
-                        className="w-full py-4 text-[16px] font-semibold rounded-full bg-white text-black hover:bg-white/90 transition-colors"
+                        className="w-full py-4 text-[16px] font-semibold rounded-full transition-colors"
+                        style={{
+                          backgroundColor: accentColor || 'white',
+                          color: buttonTextColor,
+                        }}
                       >
                         {isFreeEvent ? 'Register' : 'Get Tickets'}
                       </button>
@@ -516,7 +557,11 @@ export function EventClient({ event, mapData }: EventClientProps) {
             <button
               onClick={handleGetTickets}
               disabled={selectedSeats.length === 0}
-              className="h-11 px-6 text-[14px] font-semibold rounded-full transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 px-6 text-[14px] font-semibold rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: accentColor || 'white',
+                color: buttonTextColor,
+              }}
             >
               Get Tickets
             </button>
@@ -545,6 +590,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
         themeColor={themeColor}
         onSuccess={handlePaymentSuccess}
         error={checkoutError}
+        whiteLabelTheme={event.whiteLabelTheme}
       />
     </div>
   );

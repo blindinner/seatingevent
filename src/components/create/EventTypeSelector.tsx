@@ -5,9 +5,10 @@ import type { EventType } from '@/types/event';
 interface EventTypeSelectorProps {
   value: EventType;
   onChange: (value: EventType) => void;
+  isDarkMode?: boolean;
 }
 
-export function EventTypeSelector({ value, onChange }: EventTypeSelectorProps) {
+export function EventTypeSelector({ value, onChange, isDarkMode = true }: EventTypeSelectorProps) {
   return (
     <div className="grid grid-cols-2 gap-3">
       {/* General Admission Card */}
@@ -16,16 +17,26 @@ export function EventTypeSelector({ value, onChange }: EventTypeSelectorProps) {
         onClick={() => onChange('ga')}
         className={`relative p-4 rounded-2xl text-left transition-all duration-200 ${
           value === 'ga'
-            ? 'bg-white/[0.1] border border-white'
-            : 'bg-white/[0.06] border border-transparent hover:bg-white/[0.08]'
+            ? isDarkMode
+              ? 'bg-white/[0.1] border border-white'
+              : 'bg-black/[0.06] border border-zinc-900'
+            : isDarkMode
+              ? 'bg-white/[0.06] border border-transparent hover:bg-white/[0.08]'
+              : 'bg-black/[0.04] border border-transparent hover:bg-black/[0.06]'
         }`}
       >
         <div className="flex items-start gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-            value === 'ga' ? 'bg-white/20' : 'bg-white/[0.06]'
+            value === 'ga'
+              ? isDarkMode ? 'bg-white/20' : 'bg-black/10'
+              : isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'
           }`}>
             <svg
-              className={`w-5 h-5 transition-colors ${value === 'ga' ? 'text-white' : 'text-white/40'}`}
+              className={`w-5 h-5 transition-colors ${
+                value === 'ga'
+                  ? isDarkMode ? 'text-white' : 'text-zinc-900'
+                  : isDarkMode ? 'text-white/40' : 'text-zinc-400'
+              }`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -40,19 +51,21 @@ export function EventTypeSelector({ value, onChange }: EventTypeSelectorProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className={`text-[14px] font-medium transition-colors ${
-              value === 'ga' ? 'text-white' : 'text-white/70'
+              value === 'ga'
+                ? isDarkMode ? 'text-white' : 'text-zinc-900'
+                : isDarkMode ? 'text-white/70' : 'text-zinc-700'
             }`}>
               General Admission
             </p>
-            <p className="text-[12px] text-white/40 mt-0.5">
+            <p className={`text-[12px] mt-0.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
               Tickets without assigned seats
             </p>
           </div>
         </div>
         {value === 'ga' && (
           <div className="absolute top-3 right-3">
-            <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
-              <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-white' : 'bg-zinc-900'}`}>
+              <svg className={`w-3 h-3 ${isDarkMode ? 'text-black' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -66,16 +79,26 @@ export function EventTypeSelector({ value, onChange }: EventTypeSelectorProps) {
         onClick={() => onChange('seated')}
         className={`relative p-4 rounded-2xl text-left transition-all duration-200 ${
           value === 'seated'
-            ? 'bg-white/[0.1] border border-white'
-            : 'bg-white/[0.06] border border-transparent hover:bg-white/[0.08]'
+            ? isDarkMode
+              ? 'bg-white/[0.1] border border-white'
+              : 'bg-black/[0.06] border border-zinc-900'
+            : isDarkMode
+              ? 'bg-white/[0.06] border border-transparent hover:bg-white/[0.08]'
+              : 'bg-black/[0.04] border border-transparent hover:bg-black/[0.06]'
         }`}
       >
         <div className="flex items-start gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-            value === 'seated' ? 'bg-white/20' : 'bg-white/[0.06]'
+            value === 'seated'
+              ? isDarkMode ? 'bg-white/20' : 'bg-black/10'
+              : isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'
           }`}>
             <svg
-              className={`w-5 h-5 transition-colors ${value === 'seated' ? 'text-white' : 'text-white/40'}`}
+              className={`w-5 h-5 transition-colors ${
+                value === 'seated'
+                  ? isDarkMode ? 'text-white' : 'text-zinc-900'
+                  : isDarkMode ? 'text-white/40' : 'text-zinc-400'
+              }`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -90,19 +113,21 @@ export function EventTypeSelector({ value, onChange }: EventTypeSelectorProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className={`text-[14px] font-medium transition-colors ${
-              value === 'seated' ? 'text-white' : 'text-white/70'
+              value === 'seated'
+                ? isDarkMode ? 'text-white' : 'text-zinc-900'
+                : isDarkMode ? 'text-white/70' : 'text-zinc-700'
             }`}>
               Seated Event
             </p>
-            <p className="text-[12px] text-white/40 mt-0.5">
+            <p className={`text-[12px] mt-0.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
               Let guests pick their seats
             </p>
           </div>
         </div>
         {value === 'seated' && (
           <div className="absolute top-3 right-3">
-            <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
-              <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-white' : 'bg-zinc-900'}`}>
+              <svg className={`w-3 h-3 ${isDarkMode ? 'text-black' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>

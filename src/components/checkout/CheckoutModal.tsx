@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { formatCurrency } from '@/lib/currency';
 import Script from 'next/script';
+import type { WhiteLabelTheme } from '@/types/whiteLabel';
+import { SocialLinks } from '@/components/ui/SocialLinks';
 
 interface SelectedSeat {
   seatId: string;
@@ -33,6 +35,7 @@ interface CheckoutModalProps {
   themeColor: string;
   onSuccess?: () => void;
   error?: string | null;
+  whiteLabelTheme?: WhiteLabelTheme | null;
 }
 
 export interface CustomerInfo {
@@ -71,6 +74,7 @@ export function CheckoutModal({
   themeColor,
   onSuccess,
   error: externalError,
+  whiteLabelTheme,
 }: CheckoutModalProps) {
   const isFreeEvent = totalPrice === 0;
   const isGAEvent = selectedTickets.length > 0;
@@ -327,6 +331,16 @@ export function CheckoutModal({
         >
           {/* Header */}
           <div className="px-8 pt-8 pb-6 border-b border-white/[0.06]">
+            {/* White-label logo */}
+            {whiteLabelTheme?.navLogoUrl && (
+              <div className="mb-5">
+                <img
+                  src={whiteLabelTheme.navLogoUrl}
+                  alt={whiteLabelTheme.name}
+                  className="max-h-10 w-auto"
+                />
+              </div>
+            )}
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-[22px] font-bold text-white">
@@ -581,6 +595,17 @@ export function CheckoutModal({
             {/* Step 3: Success */}
             {step === 'success' && (
               <div className="text-center py-8">
+                {/* White-label logo */}
+                {whiteLabelTheme?.navLogoUrl && (
+                  <div className="mb-6">
+                    <img
+                      src={whiteLabelTheme.navLogoUrl}
+                      alt={whiteLabelTheme.name}
+                      className="max-h-12 w-auto mx-auto"
+                    />
+                  </div>
+                )}
+
                 <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
                   <svg className="w-10 h-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -596,6 +621,14 @@ export function CheckoutModal({
                   <p className="text-[13px] text-white/40 mb-2">Confirmation sent to</p>
                   <p className="text-[16px] text-white font-medium">{formData.email}</p>
                 </div>
+
+                {/* Social Links */}
+                {whiteLabelTheme?.socialLinks && (
+                  <div className="mb-6">
+                    <p className="text-[13px] text-white/40 mb-3">Follow us</p>
+                    <SocialLinks links={whiteLabelTheme.socialLinks} className="justify-center" iconSize="md" />
+                  </div>
+                )}
 
                 <button
                   type="button"

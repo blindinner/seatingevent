@@ -9,6 +9,15 @@ import type {
 import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
 
+// Helper to darken/lighten a hex color for stroke
+function adjustColorBrightness(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + percent));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + percent));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + percent));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
 interface SeatMapViewerProps {
   mapData: MapData;
   currency: string;
@@ -16,6 +25,7 @@ interface SeatMapViewerProps {
   compact?: boolean; // If true, shows a contained card-like view without zoom controls
   height?: string; // Custom height class, e.g., "h-[300px]"
   seatStatus?: Record<string, string>; // seatId -> status (e.g., "sold:orderId")
+  accentColor?: string; // Color for selected seats (defaults to green)
 }
 
 interface ViewState {
@@ -24,7 +34,7 @@ interface ViewState {
   panY: number;
 }
 
-export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height, seatStatus = {} }: SeatMapViewerProps) {
+export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height, seatStatus = {}, accentColor }: SeatMapViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -263,8 +273,8 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     let opacity = 1;
 
     if (isSelected) {
-      fillColor = '#22C55E'; // Green for selected
-      strokeColor = '#16A34A';
+      fillColor = accentColor || '#22C55E'; // Use accent color or fallback to green
+      strokeColor = accentColor ? adjustColorBrightness(accentColor, -20) : '#16A34A';
       strokeWidth = 2;
     } else if (isUnavailable) {
       fillColor = '#1f1f1f'; // Dark gray for unavailable

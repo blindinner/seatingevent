@@ -11,9 +11,10 @@ interface TicketTierCardProps {
   onDelete: () => void;
   canDelete: boolean;
   defaultExpanded?: boolean;
+  isDarkMode?: boolean;
 }
 
-export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, defaultExpanded = false }: TicketTierCardProps) {
+export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, defaultExpanded = false, isDarkMode = true }: TicketTierCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Local state for price input to allow free typing
@@ -58,28 +59,28 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
   };
 
   return (
-    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+    <div className={`rounded-xl border overflow-hidden ${isDarkMode ? 'bg-white/[0.04] border-white/[0.06]' : 'bg-black/[0.02] border-black/[0.06]'}`}>
       {/* Collapsed Header */}
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
+        className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${isDarkMode ? 'hover:bg-white/[0.02]' : 'hover:bg-black/[0.02]'}`}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
-            <svg className="w-4 h-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+            <svg className={`w-4 h-4 ${isDarkMode ? 'text-white/50' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-[14px] text-white/90 font-medium">{tier.name || 'Untitled Tier'}</p>
-            <p className="text-[12px] text-white/40">
+            <p className={`text-[14px] font-medium ${isDarkMode ? 'text-white/90' : 'text-zinc-800'}`}>{tier.name || 'Untitled Tier'}</p>
+            <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
               {formatCurrency(tier.price, currency)} · {formatQuantity(tier.quantity)}
             </p>
           </div>
         </div>
         <svg
-          className={`w-5 h-5 text-white/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -91,16 +92,20 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 space-y-4 border-t border-white/[0.04]">
+        <div className={`px-4 pb-4 pt-2 space-y-4 border-t ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`}>
           {/* Tier Name */}
           <div>
-            <label className="block text-[12px] text-white/40 mb-1.5">Tier name</label>
+            <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Tier name</label>
             <input
               type="text"
               value={tier.name}
               onChange={(e) => onChange({ ...tier, name: e.target.value })}
               placeholder="e.g., General Admission, VIP"
-              className="w-full px-3 py-2 text-[14px] text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20 transition-colors"
+              className={`w-full px-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors ${
+                isDarkMode
+                  ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
+                  : 'text-zinc-800 placeholder:text-zinc-400 bg-black/[0.04] border border-black/[0.06] focus:border-black/20'
+              }`}
             />
           </div>
 
@@ -108,9 +113,9 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
           <div className="grid grid-cols-2 gap-3">
             {/* Price */}
             <div>
-              <label className="block text-[12px] text-white/40 mb-1.5">Price</label>
+              <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Price</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-white/40">{getCurrencySymbol(currency)}</span>
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-[14px] ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`}>{getCurrencySymbol(currency)}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -118,17 +123,21 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
                   onChange={(e) => setPriceInput(e.target.value)}
                   onBlur={handlePriceBlur}
                   placeholder="0"
-                  className="w-full pl-7 pr-3 py-2 text-[14px] text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20 transition-colors"
+                  className={`w-full pl-7 pr-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors ${
+                    isDarkMode
+                      ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
+                      : 'text-zinc-800 placeholder:text-zinc-400 bg-black/[0.04] border border-black/[0.06] focus:border-black/20'
+                  }`}
                 />
               </div>
               {tier.price === 0 && (
-                <p className="text-[11px] text-white/30 mt-1">Leave empty for free</p>
+                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>Leave empty for free</p>
               )}
             </div>
 
             {/* Quantity */}
             <div>
-              <label className="block text-[12px] text-white/40 mb-1.5">Quantity</label>
+              <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Quantity</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -136,23 +145,31 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
                 onChange={(e) => setQuantityInput(e.target.value)}
                 onBlur={handleQuantityBlur}
                 placeholder="Unlimited"
-                className="w-full px-3 py-2 text-[14px] text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20 transition-colors"
+                className={`w-full px-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors ${
+                  isDarkMode
+                    ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
+                    : 'text-zinc-800 placeholder:text-zinc-400 bg-black/[0.04] border border-black/[0.06] focus:border-black/20'
+                }`}
               />
               {tier.quantity === -1 && (
-                <p className="text-[11px] text-white/30 mt-1">Leave empty for unlimited</p>
+                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>Leave empty for unlimited</p>
               )}
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-[12px] text-white/40 mb-1.5">Description (optional)</label>
+            <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Description (optional)</label>
             <textarea
               value={tier.description || ''}
               onChange={(e) => onChange({ ...tier, description: e.target.value })}
               placeholder="What's included with this ticket?"
               rows={2}
-              className="w-full px-3 py-2 text-[14px] text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20 transition-colors resize-none"
+              className={`w-full px-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors resize-none ${
+                isDarkMode
+                  ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
+                  : 'text-zinc-800 placeholder:text-zinc-400 bg-black/[0.04] border border-black/[0.06] focus:border-black/20'
+              }`}
             />
           </div>
 

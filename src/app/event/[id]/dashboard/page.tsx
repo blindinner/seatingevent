@@ -68,6 +68,7 @@ export default function DashboardPage() {
         const publicEvent: PublicEvent = {
           id: eventData.id,
           shortId: eventData.short_id,
+          slug: eventData.slug || null,
           name: eventData.name,
           description: eventData.description,
           hostedBy: eventData.hosted_by,
@@ -84,6 +85,7 @@ export default function DashboardPage() {
           currency: eventData.currency,
           themeColor: eventData.theme_color,
           themeFont: eventData.theme_font,
+          accentColor: eventData.accent_color || null,
           requireApproval: eventData.require_approval,
           sendQrCode: eventData.send_qr_code !== false,
           mapId: eventData.map_id,

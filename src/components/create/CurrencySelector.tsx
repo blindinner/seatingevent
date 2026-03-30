@@ -7,9 +7,10 @@ import { SUPPORTED_CURRENCIES, getCurrency } from '@/lib/currency';
 interface CurrencySelectorProps {
   value: string;
   onChange: (currency: string) => void;
+  isDarkMode?: boolean;
 }
 
-export function CurrencySelector({ value, onChange }: CurrencySelectorProps) {
+export function CurrencySelector({ value, onChange, isDarkMode = true }: CurrencySelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -70,11 +71,15 @@ export function CurrencySelector({ value, onChange }: CurrencySelectorProps) {
         ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.06] hover:bg-white/[0.08] transition-colors"
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+          isDarkMode
+            ? 'bg-white/[0.06] border-white/[0.06] hover:bg-white/[0.08]'
+            : 'bg-black/[0.04] border-black/[0.06] hover:bg-black/[0.08]'
+        }`}
       >
-        <span className="text-[14px] text-white/90 font-medium">{currentCurrency.code}</span>
+        <span className={`text-[14px] font-medium ${isDarkMode ? 'text-white/90' : 'text-zinc-900'}`}>{currentCurrency.code}</span>
         <svg
-          className={`w-4 h-4 text-white/40 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -87,18 +92,26 @@ export function CurrencySelector({ value, onChange }: CurrencySelectorProps) {
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[9999] bg-[#1c1917] rounded-xl shadow-2xl border border-white/10 overflow-hidden"
+          className={`fixed z-[9999] rounded-xl shadow-2xl border overflow-hidden ${
+            isDarkMode
+              ? 'bg-[#1c1917] border-white/10'
+              : 'bg-white border-zinc-200'
+          }`}
           style={{ top: position.top, left: position.left, width: position.width }}
         >
           {/* Search input */}
-          <div className="p-2 border-b border-white/[0.06]">
+          <div className={`p-2 border-b ${isDarkMode ? 'border-white/[0.06]' : 'border-zinc-100'}`}>
             <input
               ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search currency..."
-              className="w-full px-3 py-2 text-[13px] text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] rounded-lg focus:outline-none focus:border-white/20"
+              className={`w-full px-3 py-2 text-[13px] rounded-lg focus:outline-none ${
+                isDarkMode
+                  ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
+                  : 'text-zinc-900 placeholder:text-zinc-400 bg-zinc-50 border border-zinc-200 focus:border-zinc-400'
+              }`}
             />
           </div>
 
@@ -111,19 +124,19 @@ export function CurrencySelector({ value, onChange }: CurrencySelectorProps) {
                 onClick={() => handleSelect(currency.code)}
                 className={`w-full flex items-center justify-between px-4 py-2.5 transition-colors ${
                   currency.code === value
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/70 hover:bg-white/[0.06]'
+                    ? isDarkMode ? 'bg-white/10 text-white' : 'bg-zinc-100 text-zinc-900'
+                    : isDarkMode ? 'text-white/70 hover:bg-white/[0.06]' : 'text-zinc-700 hover:bg-zinc-50'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-10 text-[13px] font-medium text-white/90">{currency.code}</span>
-                  <span className="text-[13px] text-white/50">{currency.name}</span>
+                  <span className={`w-10 text-[13px] font-medium ${isDarkMode ? 'text-white/90' : 'text-zinc-900'}`}>{currency.code}</span>
+                  <span className={`text-[13px] ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>{currency.name}</span>
                 </div>
-                <span className="text-[13px] text-white/40">{currency.symbol}</span>
+                <span className={`text-[13px] ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`}>{currency.symbol}</span>
               </button>
             ))}
             {filteredCurrencies.length === 0 && (
-              <div className="px-4 py-6 text-center text-[13px] text-white/40">
+              <div className={`px-4 py-6 text-center text-[13px] ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`}>
                 No currencies found
               </div>
             )}

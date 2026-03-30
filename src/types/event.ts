@@ -32,11 +32,13 @@ export interface CreateEventInput {
   currency: string;
   themeColor?: string;
   themeFont?: string;
+  accentColor?: string;
   requireApproval: boolean;
   sendQrCode?: boolean; // Whether to include QR code in confirmation emails (free events only)
   mapId?: string;
   userId: string;
   whiteLabelThemeId?: string;
+  slug?: string; // Custom URL slug for branded events (only with white-label theme)
 }
 
 import type { WhiteLabelTheme } from './whiteLabel';
@@ -44,6 +46,7 @@ import type { WhiteLabelTheme } from './whiteLabel';
 export interface PublicEvent {
   id: string;
   shortId: string | null;
+  slug: string | null; // Custom URL slug for branded events
   name: string;
   description: string | null;
   hostedBy: string | null;
@@ -60,6 +63,7 @@ export interface PublicEvent {
   currency: string;
   themeColor: string | null;
   themeFont: string | null;
+  accentColor: string | null;
   requireApproval: boolean;
   sendQrCode: boolean; // Whether to include QR code in confirmation emails (free events only)
   mapId: string | null;

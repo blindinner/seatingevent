@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { isAdminEmail } from '@/lib/admin';
+import type { WhiteLabelTheme } from '@/types/whiteLabel';
 
 interface HeaderProps {
   variant?: 'default' | 'transparent';
@@ -14,6 +15,7 @@ interface HeaderProps {
 export function Header({ variant = 'default', backgroundColor }: HeaderProps) {
   const { user, loading, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [hasThemes, setHasThemes] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +27,28 @@ export function Header({ variant = 'default', backgroundColor }: HeaderProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Check if user has access to any white-label themes
+  useEffect(() => {
+    if (!user?.email) {
+      setHasThemes(false);
+      return;
+    }
+
+    async function checkThemes() {
+      try {
+        const res = await fetch(`/api/white-label/themes?email=${encodeURIComponent(user!.email!)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setHasThemes((data.themes?.length || 0) > 0);
+        }
+      } catch {
+        setHasThemes(false);
+      }
+    }
+
+    checkThemes();
+  }, [user?.email]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -105,6 +129,18 @@ export function Header({ variant = 'default', backgroundColor }: HeaderProps) {
                       </svg>
                       My Events
                     </Link>
+                    {hasThemes && (
+                      <Link
+                        href="/brand/settings"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-amber-400 hover:bg-zinc-800 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+                        </svg>
+                        Brand Settings
+                      </Link>
+                    )}
                     {isAdminEmail(user.email) && (
                       <Link
                         href="/admin"

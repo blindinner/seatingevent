@@ -1,16 +1,18 @@
-import type { WhiteLabelTheme, BackgroundConfig } from '@/types/whiteLabel';
+import type { WhiteLabelTheme, BackgroundConfig, SocialLinks } from '@/types/whiteLabel';
 
 interface DatabaseWhiteLabelTheme {
   id: string;
   name: string;
   slug: string;
   nav_logo_url: string;
+  logo_destination_url: string | null;
   email_logo_url: string | null;
   email_from_name: string | null;
   background_config: BackgroundConfig;
   brand_color: string | null;
   default_hosted_by: string | null;
   default_location: string | null;
+  social_links: SocialLinks | null;
   allowed_emails: string[];
   is_active: boolean;
   created_at: string;
@@ -23,12 +25,14 @@ function transformTheme(dbTheme: DatabaseWhiteLabelTheme): WhiteLabelTheme {
     name: dbTheme.name,
     slug: dbTheme.slug,
     navLogoUrl: dbTheme.nav_logo_url,
+    logoDestinationUrl: dbTheme.logo_destination_url,
     emailLogoUrl: dbTheme.email_logo_url,
     emailFromName: dbTheme.email_from_name,
     backgroundConfig: dbTheme.background_config || { elements: [] },
     brandColor: dbTheme.brand_color,
     defaultHostedBy: dbTheme.default_hosted_by,
     defaultLocation: dbTheme.default_location,
+    socialLinks: dbTheme.social_links,
     allowedEmails: dbTheme.allowed_emails || [],
     isActive: dbTheme.is_active,
     createdAt: dbTheme.created_at,

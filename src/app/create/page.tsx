@@ -20,6 +20,43 @@ import { createMap, createExtendedEvent, uploadCoverImage } from '@/lib/supabase
 import { SimpleAuthModal } from '@/components/auth/SimpleAuthModal';
 import { EventPreviewModal } from '@/components/create/EventPreviewModal';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { Vibrant } from 'node-vibrant/browser';
+
+// Type for accent color
+type AccentColorOption = { id: string; name: string; color: string };
+
+// Helper to extract multiple accent colors from image
+async function extractColorsFromImage(imageUrl: string): Promise<AccentColorOption[]> {
+  try {
+    const palette = await Vibrant.from(imageUrl).getPalette();
+    const colors: AccentColorOption[] = [];
+
+    // Extract all available colors from palette
+    if (palette.Vibrant) {
+      colors.push({ id: 'vibrant', name: 'Vibrant', color: palette.Vibrant.hex });
+    }
+    if (palette.LightVibrant) {
+      colors.push({ id: 'light-vibrant', name: 'Light', color: palette.LightVibrant.hex });
+    }
+    if (palette.DarkVibrant) {
+      colors.push({ id: 'dark-vibrant', name: 'Dark', color: palette.DarkVibrant.hex });
+    }
+    if (palette.Muted) {
+      colors.push({ id: 'muted', name: 'Muted', color: palette.Muted.hex });
+    }
+    if (palette.LightMuted) {
+      colors.push({ id: 'light-muted', name: 'Soft', color: palette.LightMuted.hex });
+    }
+    if (palette.DarkMuted) {
+      colors.push({ id: 'dark-muted', name: 'Deep', color: palette.DarkMuted.hex });
+    }
+
+    return colors;
+  } catch (error) {
+    console.error('Failed to extract colors from image:', error);
+    return [];
+  }
+}
 
 // Helper to parse date string as local date (avoids timezone issues)
 function parseLocalDate(dateStr: string): Date {
@@ -258,10 +295,12 @@ function AddressAutocomplete({
   value,
   onChange,
   onSelect,
+  isDarkMode = true,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSelect: (place: { address: string; lat: number; lng: number }) => void;
+  isDarkMode?: boolean;
 }) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -398,7 +437,7 @@ function AddressAutocomplete({
         onChange={handleChange}
         onFocus={() => suggestions.length > 0 && setIsOpen(true)}
         placeholder="Add venue or location"
-        className="w-full text-[14px] text-white/90 placeholder:text-white/30 bg-transparent focus:outline-none"
+        className={`w-full text-[14px] bg-transparent focus:outline-none ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
       />
 
       {/* Suggestions dropdown - rendered via portal */}
@@ -525,10 +564,12 @@ function CategoryPriceInput({
   priceInCents,
   currencySymbol,
   onChange,
+  isDarkMode = true,
 }: {
   priceInCents: number | undefined;
   currencySymbol: string;
   onChange: (price: number) => void;
+  isDarkMode?: boolean;
 }) {
   const [localValue, setLocalValue] = useState(() =>
     priceInCents !== undefined ? priceInCents.toString() : ''
@@ -570,7 +611,7 @@ function CategoryPriceInput({
 
   return (
     <div className="relative w-28">
-      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white/40 text-[13px]">
+      <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-[13px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
         {currencySymbol}
       </span>
       <input
@@ -581,20 +622,110 @@ function CategoryPriceInput({
         onFocus={() => setIsFocused(true)}
         onBlur={handleBlur}
         placeholder="0.00"
-        className="w-full pl-6 pr-2 py-1.5 bg-white/[0.06] border border-white/10 rounded-lg text-[13px] text-white text-right focus:outline-none focus:border-white/30 transition-colors"
+        className={`w-full pl-6 pr-2 py-1.5 rounded-lg text-[13px] text-right focus:outline-none transition-colors ${
+          isDarkMode
+            ? 'bg-white/[0.06] border border-white/10 text-white focus:border-white/30'
+            : 'bg-black/[0.04] border border-zinc-200 text-zinc-800 focus:border-zinc-400'
+        }`}
       />
     </div>
   );
 }
 
-const themeColors = [
-  { id: 'zinc', name: 'Zinc', bg: '#18181b' },
-  { id: 'stone', name: 'Stone', bg: '#1c1917' },
-  { id: 'slate', name: 'Slate', bg: '#0f172a' },
-  { id: 'green', name: 'Green', bg: '#052e16' },
-  { id: 'purple', name: 'Purple', bg: '#1e1b2e' },
-  { id: 'wine', name: 'Wine', bg: '#1c1017' },
+// Default background colors for each mode
+const darkBgColors = [
+  { id: 'dark', name: 'Dark', bg: '#1c1917' },
 ];
+
+const lightBgColors = [
+  { id: 'light', name: 'Light', bg: '#ffffff' },
+];
+
+// Accent colors (for gradient glow)
+const accentColors = [
+  { id: 'gold', name: 'Gold', color: '#d4a54a' },
+  { id: 'rose', name: 'Rose', color: '#e879a0' },
+  { id: 'blue', name: 'Blue', color: '#6b93d6' },
+  { id: 'purple', name: 'Purple', color: '#9b7cd6' },
+  { id: 'teal', name: 'Teal', color: '#4abad6' },
+  { id: 'orange', name: 'Orange', color: '#e89050' },
+];
+
+// Helper to convert hex to HSL
+function hexToHSL(hex: string): { h: number; s: number; l: number } {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+// Helper to convert HSL to hex
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+
+  if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
+  else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
+  else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
+  else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
+  else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
+  else if (h >= 300 && h < 360) { r = c; g = 0; b = x; }
+
+  const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// Derive background colors from accent color (returns base and lighter shade for gradient)
+function deriveBackgroundFromAccent(accentHex: string, isDark: boolean): { base: string; light: string } {
+  const { h, s } = hexToHSL(accentHex);
+
+  if (isDark) {
+    // Dark mode: rich dark gradient from darker bottom to warmer top
+    const baseL = 8;   // Darker at bottom
+    const lightL = 18; // Warmer towards top
+    const newS = Math.min(s * 0.5, 25);
+    return {
+      base: hslToHex(h, newS, baseL),
+      light: hslToHex(h, newS * 1.2, lightL),
+    };
+  } else {
+    // Light mode: warm cream/beige gradient - NOT white
+    // More saturation and lower lightness for visible warmth
+    const baseL = 92;  // Warm cream at bottom (not pure white)
+    const lightL = 85; // Warmer/more tinted at top
+    const baseSat = Math.max(s * 0.35, 15); // Ensure minimum saturation for visible tint
+    const lightSat = Math.max(s * 0.5, 25); // More saturation at top for warmth
+    return {
+      base: hslToHex(h, baseSat, baseL),
+      light: hslToHex(h, lightSat, lightL),
+    };
+  }
+}
+
+// Keep for backwards compatibility
+const themeColors = darkBgColors;
 
 const themeFonts = [
   { id: 'default', name: 'Default', style: 'font-sans' },
@@ -1077,10 +1208,24 @@ export default function CreateEvent() {
   const { map, updateCategory, addCategory, deleteCategory } = useMapStore();
 
   // Theme state
-  const [selectedColor, setSelectedColor] = useState(themeColors[1]); // stone default
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [selectedColor, setSelectedColor] = useState(darkBgColors[0]); // dark default
   const [selectedFont, setSelectedFont] = useState(themeFonts[0]);
+  const [accentColor, setAccentColor] = useState<AccentColorOption>({ id: 'none', name: 'None', color: '#888888' }); // no accent by default
+  const [extractedColors, setExtractedColors] = useState<AccentColorOption[]>([]); // colors extracted from image
+  const [applyAccentToBackground, setApplyAccentToBackground] = useState(false); // Apply accent color to background
   const [whiteLabelThemeId, setWhiteLabelThemeId] = useState<string | null>(null);
   const [whiteLabelTheme, setWhiteLabelTheme] = useState<import('@/types/whiteLabel').WhiteLabelTheme | null>(null);
+
+  // Sync accent color with first seat category
+  useEffect(() => {
+    if (eventType === 'seated' && map && map.categories.length > 0 && accentColor.id !== 'none') {
+      const firstCategory = map.categories[0];
+      if (firstCategory.color !== accentColor.color) {
+        updateCategory(firstCategory.id, { color: accentColor.color });
+      }
+    }
+  }, [accentColor.color, accentColor.id, eventType, map, updateCategory]);
 
   // Calculate ticket summary for display
   const getTicketSummary = () => {
@@ -1195,8 +1340,9 @@ export default function CreateEvent() {
         eventType,
         ticketTiers: eventType === 'ga' ? ticketTiers : undefined,
         currency,
-        themeColor: selectedColor.bg,
+        themeColor: effectiveBackgroundColor,
         themeFont: selectedFont.id,
+        accentColor: accentColor.color,
         requireApproval,
         sendQrCode: isFreeEvent ? sendQrCode : true, // Only applies to free events
         whiteLabelThemeId: whiteLabelThemeId || undefined,
@@ -1211,13 +1357,34 @@ export default function CreateEvent() {
     }
   };
 
+  // Generate background style - use accent-derived gradient if toggle is on and image is uploaded
+  const accentBgColors = applyAccentToBackground && extractedColors.length > 0
+    ? deriveBackgroundFromAccent(accentColor.color, isDarkMode)
+    : null;
+
+  const effectiveBackgroundColor = accentBgColors ? accentBgColors.base : selectedColor.bg;
+
+  const bgStyle = accentBgColors
+    ? {
+        background: `linear-gradient(to bottom, ${accentBgColors.light} 0%, ${accentBgColors.base} 100%)`,
+      }
+    : {
+        backgroundColor: selectedColor.bg,
+      };
+
   return (
-    <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: selectedColor.bg }}>
+    <div
+      className={`min-h-screen transition-all duration-500 ${isDarkMode ? '' : 'text-zinc-900'}`}
+      style={bgStyle}
+    >
       {/* Background decorations - uses white-label theme if selected */}
       <BackgroundDecorations theme={whiteLabelTheme || undefined} />
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${selectedColor.bg}cc` }}>
+      <nav
+        className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-500 ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}
+        style={{ backgroundColor: `${effectiveBackgroundColor}cc` }}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="group">
             {whiteLabelTheme?.navLogoUrl ? (
@@ -1239,11 +1406,11 @@ export default function CreateEvent() {
           <div className="flex items-center gap-3">
             {/* User indicator */}
             {user && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10">
+              <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full ${isDarkMode ? 'bg-white/10 border border-white/10' : 'bg-black/5 border border-black/10'}`}>
                 <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[10px] font-medium text-white">
                   {user.email?.[0]?.toUpperCase() || 'U'}
                 </div>
-                <span className="text-xs text-white/70 max-w-[100px] truncate">
+                <span className={`text-xs max-w-[100px] truncate ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>
                   {user.email?.split('@')[0]}
                 </span>
               </div>
@@ -1251,7 +1418,7 @@ export default function CreateEvent() {
             <button
               type="button"
               onClick={() => setPreviewModalOpen(true)}
-              className="h-9 px-4 text-[13px] font-medium rounded-full transition-colors bg-white/10 text-white hover:bg-white/20 flex items-center gap-2"
+              className={`h-9 px-4 text-[13px] font-medium rounded-full transition-colors flex items-center gap-2 ${isDarkMode ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-black/5 text-zinc-800 hover:bg-black/10'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1263,7 +1430,11 @@ export default function CreateEvent() {
               type="submit"
               form="create-event-form"
               disabled={isSubmitting}
-              className="h-9 px-5 text-[13px] font-semibold rounded-full transition-colors bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-9 px-5 text-[13px] font-semibold rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: accentColor.color,
+                color: ['gold', 'orange', 'teal'].includes(accentColor.id) ? '#000' : '#fff',
+              }}
             >
               {isSubmitting ? 'Creating...' : 'Create Event'}
             </button>
@@ -1272,13 +1443,13 @@ export default function CreateEvent() {
       </nav>
 
       {/* Main Content */}
-      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 pb-40">
+      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 pb-12">
         <form id="create-event-form" onSubmit={handleSubmit}>
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
             {/* Left Column */}
             <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
               {/* Cover Image */}
-              <div className="relative rounded-3xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
+              <div className={`relative rounded-3xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 {coverImage ? (
                   <div className={`${coverImageIsLandscape ? 'aspect-[16/10]' : 'aspect-[4/5]'} relative group`}>
                     <img
@@ -1297,13 +1468,19 @@ export default function CreateEvent() {
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onload = (e) => {
+                              reader.onload = async (e) => {
                                 const dataUrl = e.target?.result as string;
                                 setCoverImage(dataUrl);
                                 // Detect aspect ratio
                                 const img = new window.Image();
                                 img.onload = () => setCoverImageIsLandscape(img.width > img.height);
                                 img.src = dataUrl;
+                                // Extract colors from image
+                                const colors = await extractColorsFromImage(dataUrl);
+                                if (colors.length > 0) {
+                                  setExtractedColors(colors);
+                                  setAccentColor(colors[0]); // Auto-select first (most vibrant)
+                                }
                               };
                               reader.readAsDataURL(file);
                             }
@@ -1317,7 +1494,13 @@ export default function CreateEvent() {
                     {/* Remove button */}
                     <button
                       type="button"
-                      onClick={() => { setCoverImage(null); setCoverImageIsLandscape(false); }}
+                      onClick={() => {
+                        setCoverImage(null);
+                        setCoverImageIsLandscape(false);
+                        // Reset to no accent
+                        setExtractedColors([]);
+                        setAccentColor({ id: 'none', name: 'None', color: '#888888' });
+                      }}
                       className="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
                     >
                       <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1335,41 +1518,47 @@ export default function CreateEvent() {
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onload = (e) => {
+                          reader.onload = async (e) => {
                             const dataUrl = e.target?.result as string;
                             setCoverImage(dataUrl);
                             // Detect aspect ratio
                             const img = new window.Image();
                             img.onload = () => setCoverImageIsLandscape(img.width > img.height);
                             img.src = dataUrl;
+                            // Extract colors from image
+                            const colors = await extractColorsFromImage(dataUrl);
+                            if (colors.length > 0) {
+                              setExtractedColors(colors);
+                              setAccentColor(colors[0]); // Auto-select first (most vibrant)
+                            }
                           };
                           reader.readAsDataURL(file);
                         }
                       }}
                     />
-                    <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${isDarkMode ? 'bg-white/[0.04]' : 'bg-black/[0.04]'}`}>
+                      <svg className={`w-8 h-8 ${isDarkMode ? 'text-white/20' : 'text-zinc-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                       </svg>
                     </div>
-                    <p className="text-[14px] text-white/50 mb-1">Add cover image</p>
-                    <p className="text-[12px] text-white/30">Recommended: 800x1000px</p>
+                    <p className={`text-[14px] mb-1 ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>Add cover image</p>
+                    <p className={`text-[12px] ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>Recommended: 800x1000px</p>
                   </label>
                 )}
               </div>
 
               {/* Seat Map Preview - show for seated events */}
               {eventType === 'seated' && (
-                <div className="relative rounded-2xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
-                  <div className="p-4 border-b border-white/[0.03] flex items-center justify-between">
+                <div className={`relative rounded-2xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                  <div className={`p-4 border-b flex items-center justify-between ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
                     <div>
-                      <p className="text-[11px] text-white/30 uppercase tracking-wider">Seat Map</p>
-                      <p className="text-[13px] text-white/70 mt-0.5">{map?.name || 'Click to design'}</p>
+                      <p className={`text-[11px] uppercase tracking-wider ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>Seat Map</p>
+                      <p className={`text-[13px] mt-0.5 ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{map?.name || 'Click to design'}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSeatMapModalOpen(true)}
-                      className="px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors bg-white/10 text-white hover:bg-white/20"
+                      className={`px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors ${isDarkMode ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-black/10 text-zinc-800 hover:bg-black/15'}`}
                     >
                       Edit map
                     </button>
@@ -1382,7 +1571,7 @@ export default function CreateEvent() {
                       {map.categories.map(cat => (
                         <div key={cat.id} className="flex items-center gap-1.5">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                          <span className="text-white/40">{cat.name}</span>
+                          <span className={isDarkMode ? 'text-white/40' : 'text-zinc-500'}>{cat.name}</span>
                         </div>
                       ))}
                     </div>
@@ -1393,20 +1582,147 @@ export default function CreateEvent() {
               {/* Quick Stats - show for seated events */}
               {eventType === 'seated' && map && (
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent">
-                    <p className="text-[11px] text-white/40 uppercase tracking-wider">Elements</p>
-                    <p className="text-[20px] font-semibold text-white mt-1">{map.elements.length}</p>
+                  <div className={`p-4 rounded-2xl backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                    <p className={`text-[11px] uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Elements</p>
+                    <p className={`text-[20px] font-semibold mt-1 ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{map.elements.length}</p>
                   </div>
-                  <div className="p-4 rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent">
-                    <p className="text-[11px] text-white/40 uppercase tracking-wider">Total Seats</p>
-                    <p className="text-[20px] font-semibold text-white mt-1">{getCapacityDisplay().replace(' seats', '')}</p>
+                  <div className={`p-4 rounded-2xl backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                    <p className={`text-[11px] uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Total Seats</p>
+                    <p className={`text-[20px] font-semibold mt-1 ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{getCapacityDisplay().replace(' seats', '')}</p>
                   </div>
                 </div>
               )}
+
+              {/* Page Style Section */}
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`}>
+                  <p className={`text-[13px] font-medium ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Page Style</p>
+                </div>
+                <div className="p-4 space-y-4">
+                  {/* Light/Dark Mode Toggle */}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[13px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>Mode</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newMode = !isDarkMode;
+                        setIsDarkMode(newMode);
+                        // Set default background for the mode
+                        setSelectedColor(newMode ? darkBgColors[0] : lightBgColors[0]);
+                      }}
+                      className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
+                        isDarkMode ? 'bg-zinc-700' : 'bg-zinc-300'
+                      }`}
+                    >
+                      <div className={`absolute top-1 w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center ${
+                        isDarkMode ? 'left-1 bg-zinc-900' : 'left-7 bg-white shadow-sm'
+                      }`}>
+                        {isDarkMode ? (
+                          <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Accent Color - only show when image is uploaded */}
+                  {extractedColors.length > 0 ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-[13px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>Accent Color</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-white/10 text-white/50' : 'bg-black/10 text-zinc-500'}`}>
+                          From image
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {extractedColors.map((color) => (
+                          <button
+                            key={color.id}
+                            type="button"
+                            onClick={() => setAccentColor(color)}
+                            className={`w-8 h-8 rounded-full transition-all duration-200 ${
+                              accentColor.id === color.id
+                                ? `ring-2 ring-offset-2 scale-110 ${isDarkMode ? 'ring-white ring-offset-zinc-900' : 'ring-zinc-900 ring-offset-white'}`
+                                : `border ${isDarkMode ? 'border-white/20' : 'border-black/20'} hover:scale-105`
+                            }`}
+                            style={{ backgroundColor: color.color }}
+                            title={color.name}
+                          />
+                        ))}
+                        {/* Custom color picker */}
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={accentColor.color}
+                            onChange={(e) => setAccentColor({ id: 'custom', name: 'Custom', color: e.target.value })}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <div
+                            className={`w-8 h-8 rounded-full transition-all duration-200 cursor-pointer ${
+                              accentColor.id === 'custom'
+                                ? `ring-2 ring-offset-2 scale-110 ${isDarkMode ? 'ring-white ring-offset-zinc-900' : 'ring-zinc-900 ring-offset-white'}`
+                                : `border ${isDarkMode ? 'border-white/20' : 'border-black/20'} hover:scale-105`
+                            }`}
+                            style={{
+                              background: accentColor.id === 'custom' ? accentColor.color : 'conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                            }}
+                            title="Custom color"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={`text-[12px] ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>
+                      Upload an image to extract accent colors
+                    </p>
+                  )}
+
+                  {/* Accent Background Toggle - only show when accent colors are available */}
+                  {extractedColors.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setApplyAccentToBackground(!applyAccentToBackground)}
+                      className={`w-full px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 ${
+                        applyAccentToBackground
+                          ? isDarkMode ? 'bg-white/20 text-white' : 'bg-zinc-900 text-white'
+                          : isDarkMode ? 'bg-white/5 text-white/40' : 'bg-black/5 text-zinc-500'
+                      }`}
+                    >
+                      Apply to Background
+                    </button>
+                  )}
+
+                  {/* Font */}
+                  <div>
+                    <span className={`text-[13px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>Font</span>
+                    <div className="flex gap-2 mt-2">
+                      {themeFonts.map((font) => (
+                        <button
+                          key={font.id}
+                          type="button"
+                          onClick={() => setSelectedFont(font)}
+                          className={`flex-1 py-2 rounded-lg text-[14px] font-semibold transition-all duration-200 ${font.style} ${
+                            selectedFont.id === font.id
+                              ? isDarkMode ? 'bg-white text-black' : 'bg-zinc-900 text-white'
+                              : isDarkMode ? 'bg-white/10 text-white/60 hover:bg-white/15' : 'bg-black/10 text-zinc-600 hover:bg-black/15'
+                          }`}
+                        >
+                          Aa
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Right Column */}
-            <div className="flex-1 space-y-5 pb-20">
+            <div className="flex-1 space-y-5 pb-8">
               {/* Event Name */}
               <div>
                 <input
@@ -1414,21 +1730,21 @@ export default function CreateEvent() {
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   placeholder="Event name"
-                  className={`w-full text-[1.75rem] sm:text-[2.5rem] font-semibold text-white placeholder:text-white/20 bg-transparent focus:outline-none tracking-tight ${selectedFont.style}`}
+                  className={`w-full text-[1.75rem] sm:text-[2.5rem] font-semibold bg-transparent focus:outline-none tracking-tight ${selectedFont.style} ${isDarkMode ? 'text-white placeholder:text-white/20' : 'text-zinc-900 placeholder:text-zinc-400'}`}
                   autoFocus
                 />
               </div>
 
               {/* Date/Time */}
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className="flex">
-                  <div className="flex-1 divide-y divide-white/[0.06]">
+                  <div className={`flex-1 divide-y ${isDarkMode ? 'divide-white/[0.06]' : 'divide-black/[0.06]'}`}>
                     {/* Start Row */}
                     <div className="flex items-center px-4 py-3.5">
                       <div className="w-10 flex items-center">
-                        <div className="w-2 h-2 rounded-full border-2 border-white/50" />
+                        <div className={`w-2 h-2 rounded-full border-2 ${isDarkMode ? 'border-white/50' : 'border-zinc-400'}`} />
                       </div>
-                      <span className="text-[13px] text-white/40 w-12">Start</span>
+                      <span className={`text-[13px] w-12 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Start</span>
                       {/* Start Date */}
                       <div className="flex-1">
                         <button
@@ -1437,10 +1753,10 @@ export default function CreateEvent() {
                           onClick={() => setOpenPicker(openPicker === 'startDate' ? null : 'startDate')}
                           className="flex items-center gap-2 group"
                         >
-                          <span className="text-[14px] text-white/90 group-hover:text-white transition-colors">
+                          <span className={`text-[14px] transition-colors ${isDarkMode ? 'text-white/90 group-hover:text-white' : 'text-zinc-800 group-hover:text-zinc-900'}`}>
                             {formatDate(startDate)}
                           </span>
-                          <svg className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <svg className={`w-4 h-4 transition-colors ${isDarkMode ? 'text-white/30 group-hover:text-white/60' : 'text-zinc-400 group-hover:text-zinc-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                           </svg>
                         </button>
@@ -1460,10 +1776,10 @@ export default function CreateEvent() {
                           onClick={() => setOpenPicker(openPicker === 'startTime' ? null : 'startTime')}
                           className="flex items-center gap-2 group"
                         >
-                          <span className="text-[14px] text-white/70 group-hover:text-white transition-colors">
+                          <span className={`text-[14px] transition-colors ${isDarkMode ? 'text-white/70 group-hover:text-white' : 'text-zinc-700 group-hover:text-zinc-900'}`}>
                             {formatTime(startTime)}
                           </span>
-                          <svg className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <svg className={`w-4 h-4 transition-colors ${isDarkMode ? 'text-white/30 group-hover:text-white/60' : 'text-zinc-400 group-hover:text-zinc-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
@@ -1479,9 +1795,9 @@ export default function CreateEvent() {
                     {/* End Row */}
                     <div className="flex items-center px-4 py-3.5">
                       <div className="w-10 flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-white/50" />
+                        <div className={`w-2 h-2 rounded-full ${isDarkMode ? 'bg-white/50' : 'bg-zinc-400'}`} />
                       </div>
-                      <span className="text-[13px] text-white/40 w-12">End</span>
+                      <span className={`text-[13px] w-12 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>End</span>
                       {/* End Date */}
                       <div className="flex-1">
                         <button
@@ -1490,10 +1806,10 @@ export default function CreateEvent() {
                           onClick={() => setOpenPicker(openPicker === 'endDate' ? null : 'endDate')}
                           className="flex items-center gap-2 group"
                         >
-                          <span className="text-[14px] text-white/90 group-hover:text-white transition-colors">
+                          <span className={`text-[14px] transition-colors ${isDarkMode ? 'text-white/90 group-hover:text-white' : 'text-zinc-800 group-hover:text-zinc-900'}`}>
                             {formatDate(endDate)}
                           </span>
-                          <svg className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <svg className={`w-4 h-4 transition-colors ${isDarkMode ? 'text-white/30 group-hover:text-white/60' : 'text-zinc-400 group-hover:text-zinc-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                           </svg>
                         </button>
@@ -1514,10 +1830,10 @@ export default function CreateEvent() {
                           onClick={() => setOpenPicker(openPicker === 'endTime' ? null : 'endTime')}
                           className="flex items-center gap-2 group"
                         >
-                          <span className="text-[14px] text-white/70 group-hover:text-white transition-colors">
+                          <span className={`text-[14px] transition-colors ${isDarkMode ? 'text-white/70 group-hover:text-white' : 'text-zinc-700 group-hover:text-zinc-900'}`}>
                             {formatTime(endTime)}
                           </span>
-                          <svg className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <svg className={`w-4 h-4 transition-colors ${isDarkMode ? 'text-white/30 group-hover:text-white/60' : 'text-zinc-400 group-hover:text-zinc-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </button>
@@ -1535,9 +1851,9 @@ export default function CreateEvent() {
               </div>
 
               {/* Location */}
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className="flex items-center gap-3 px-4 py-3.5">
-                  <svg className="w-5 h-5 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
@@ -1547,6 +1863,7 @@ export default function CreateEvent() {
                     onSelect={(place) => {
                       setLocationCoords({ lat: place.lat, lng: place.lng });
                     }}
+                    isDarkMode={isDarkMode}
                   />
                   {location && (
                     <button
@@ -1555,9 +1872,9 @@ export default function CreateEvent() {
                         setLocation('');
                         setLocationCoords(null);
                       }}
-                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+                      className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
                     >
-                      <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`w-4 h-4 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -1572,15 +1889,15 @@ export default function CreateEvent() {
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     />
-                    <div className="absolute inset-0 pointer-events-none border-t border-white/[0.06]" />
+                    <div className={`absolute inset-0 pointer-events-none border-t ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`} />
                   </div>
                 )}
               </div>
 
               {/* Description */}
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className="flex items-start gap-3 px-4 py-3.5">
-                  <svg className="w-5 h-5 text-white/30 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg className={`w-5 h-5 mt-0.5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
                   </svg>
                   <textarea
@@ -1588,15 +1905,15 @@ export default function CreateEvent() {
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Add description..."
                     rows={3}
-                    className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
+                    className={`flex-1 text-[14px] bg-transparent border-none focus:outline-none focus:ring-0 resize-none ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
                   />
                 </div>
               </div>
 
               {/* Hosted By */}
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className="flex items-center gap-3 px-4 py-3.5">
-                  <svg className="w-5 h-5 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                   </svg>
                   <input
@@ -1604,7 +1921,7 @@ export default function CreateEvent() {
                     value={hostedBy}
                     onChange={(e) => setHostedBy(e.target.value)}
                     placeholder="Hosted by..."
-                    className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0"
+                    className={`flex-1 text-[14px] bg-transparent border-none focus:outline-none focus:ring-0 ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
                   />
                 </div>
               </div>
@@ -1614,6 +1931,7 @@ export default function CreateEvent() {
                 <WhiteLabelThemeSelector
                   userEmail={user.email}
                   selectedThemeId={whiteLabelThemeId}
+                  isDarkMode={isDarkMode}
                   onChange={async (id, theme) => {
                     setWhiteLabelThemeId(id);
                     setWhiteLabelTheme(theme);
@@ -1639,8 +1957,8 @@ export default function CreateEvent() {
 
               {/* Event Type Selector */}
               <div className="space-y-3">
-                <p className="text-[12px] text-white/40 uppercase tracking-wider px-1">Event Type</p>
-                <EventTypeSelector value={eventType} onChange={setEventType} />
+                <p className={`text-[12px] uppercase tracking-wider px-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Event Type</p>
+                <EventTypeSelector value={eventType} onChange={setEventType} isDarkMode={isDarkMode} />
               </div>
 
               {/* Ticket Tiers (for GA events) */}
@@ -1650,28 +1968,29 @@ export default function CreateEvent() {
                   currency={currency}
                   onCurrencyChange={setCurrency}
                   onChange={setTicketTiers}
+                  isDarkMode={isDarkMode}
                 />
               )}
 
               {/* Pricing Editor (for Seated events) */}
               {eventType === 'seated' && (
-                <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.04]">
+                <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                  <div className={`flex items-center justify-between px-4 py-3.5 border-b ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`}>
                     <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
                       </svg>
                       <div>
-                        <span className="text-[14px] text-white/70">Ticket Pricing</span>
-                        <p className="text-[12px] text-white/40">Set prices for each seat category</p>
+                        <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Ticket Pricing</span>
+                        <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Set prices for each seat category</p>
                       </div>
                     </div>
-                    <CurrencySelector value={currency} onChange={setCurrency} />
+                    <CurrencySelector value={currency} onChange={setCurrency} isDarkMode={isDarkMode} />
                   </div>
                   {map ? (
                     <div className="p-3 space-y-2">
                       {map.categories.map(category => (
-                        <div key={category.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.04] group">
+                        <div key={category.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg group ${isDarkMode ? 'bg-white/[0.04]' : 'bg-black/[0.03]'}`}>
                           <div className="relative w-6 h-6 flex-shrink-0">
                             <div
                               className="w-6 h-6 rounded-full cursor-pointer"
@@ -1688,18 +2007,19 @@ export default function CreateEvent() {
                             type="text"
                             value={category.name}
                             onChange={(e) => updateCategory(category.id, { name: e.target.value })}
-                            className="flex-1 bg-transparent text-[13px] text-white/80 focus:outline-none focus:text-white"
+                            className={`flex-1 bg-transparent text-[13px] focus:outline-none ${isDarkMode ? 'text-white/80 focus:text-white' : 'text-zinc-700 focus:text-zinc-900'}`}
                           />
                           <CategoryPriceInput
                             priceInCents={category.price}
                             currencySymbol={getCurrencySymbol(currency)}
                             onChange={(cents) => updateCategory(category.id, { price: cents })}
+                            isDarkMode={isDarkMode}
                           />
                           {map.categories.length > 1 && (
                             <button
                               type="button"
                               onClick={() => deleteCategory(category.id)}
-                              className="w-6 h-6 flex items-center justify-center text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                              className={`w-6 h-6 flex items-center justify-center hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all ${isDarkMode ? 'text-white/20' : 'text-zinc-300'}`}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1722,7 +2042,7 @@ export default function CreateEvent() {
                             price: 0,
                           });
                         }}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-white/10 text-white/40 hover:text-white/60 hover:border-white/20 transition-colors"
+                        className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-dashed transition-colors ${isDarkMode ? 'border-white/10 text-white/40 hover:text-white/60 hover:border-white/20' : 'border-zinc-300 text-zinc-400 hover:text-zinc-600 hover:border-zinc-400'}`}
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -1731,7 +2051,7 @@ export default function CreateEvent() {
                       </button>
                     </div>
                   ) : (
-                    <div className="p-4 text-center text-[13px] text-white/40">
+                    <div className={`p-4 text-center text-[13px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
                       Create a seat map to set pricing
                     </div>
                   )}
@@ -1739,46 +2059,50 @@ export default function CreateEvent() {
               )}
 
               {/* Options */}
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent divide-y divide-white/[0.04]">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent divide-y ${isDarkMode ? 'bg-white/[0.06] divide-white/[0.04]' : 'bg-black/[0.04] divide-black/[0.04]'}`}>
                 {/* Ticket Summary */}
                 <div className="flex items-center justify-between px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
                     </svg>
-                    <span className="text-[14px] text-white/70">Tickets</span>
+                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Tickets</span>
                   </div>
-                  <span className="text-[14px] text-white/50">{getTicketSummary()}</span>
+                  <span className={`text-[14px] ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>{getTicketSummary()}</span>
                 </div>
 
                 {/* Capacity */}
                 <div className="flex items-center justify-between px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
-                    <span className="text-[14px] text-white/70">Capacity</span>
+                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Capacity</span>
                   </div>
-                  <span className="text-[14px] text-white/50">{getCapacityDisplay()}</span>
+                  <span className={`text-[14px] ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>{getCapacityDisplay()}</span>
                 </div>
 
                 {/* Require Approval */}
                 <div className="flex items-center justify-between px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-[14px] text-white/70">Require approval</span>
+                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Require approval</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setRequireApproval(!requireApproval)}
                     className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${
-                      requireApproval ? 'bg-white' : 'bg-white/10'
+                      requireApproval
+                        ? isDarkMode ? 'bg-white' : 'bg-zinc-900'
+                        : isDarkMode ? 'bg-white/10' : 'bg-zinc-200'
                     }`}
                   >
                     <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${
-                      requireApproval ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
+                      requireApproval
+                        ? isDarkMode ? 'translate-x-4 bg-black' : 'translate-x-4 bg-white'
+                        : isDarkMode ? 'translate-x-0 bg-white' : 'translate-x-0 bg-zinc-500'
                     }`} />
                   </button>
                 </div>
@@ -1787,24 +2111,28 @@ export default function CreateEvent() {
                 {isFreeEvent && (
                   <div className="flex items-center justify-between px-4 py-3.5">
                     <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                       </svg>
                       <div>
-                        <span className="text-[14px] text-white/70">Include QR code</span>
-                        <p className="text-[12px] text-white/40">Send QR code in confirmation email</p>
+                        <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Include QR code</span>
+                        <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Send QR code in confirmation email</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSendQrCode(!sendQrCode)}
                       className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${
-                        sendQrCode ? 'bg-white' : 'bg-white/10'
+                        sendQrCode
+                          ? isDarkMode ? 'bg-white' : 'bg-zinc-900'
+                          : isDarkMode ? 'bg-white/10' : 'bg-zinc-200'
                       }`}
                     >
                       <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${
-                        sendQrCode ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
+                        sendQrCode
+                          ? isDarkMode ? 'translate-x-4 bg-black' : 'translate-x-4 bg-white'
+                          : isDarkMode ? 'translate-x-0 bg-white' : 'translate-x-0 bg-zinc-500'
                       }`} />
                     </button>
                   </div>
@@ -1814,7 +2142,11 @@ export default function CreateEvent() {
               {/* Create Button */}
               <button
                 type="submit"
-                className="w-full py-4 text-[15px] font-semibold rounded-full transition-all bg-white text-black hover:bg-white/90"
+                className="w-full py-4 text-[15px] font-semibold rounded-full transition-all"
+                style={{
+                  backgroundColor: accentColor.color,
+                  color: ['gold', 'orange', 'teal'].includes(accentColor.id) ? '#000' : '#fff',
+                }}
               >
                 Create Event
               </button>
@@ -1822,85 +2154,6 @@ export default function CreateEvent() {
           </div>
         </form>
       </main>
-
-      {/* Fixed Bottom Theme Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 overflow-x-auto">
-          <div className="flex items-center gap-4 sm:gap-6 min-w-max">
-            {/* Color */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-[11px] sm:text-[12px] text-white/40">Color</span>
-              <div className="flex gap-1.5">
-                {themeColors.map((color) => (
-                  <button
-                    key={color.id}
-                    type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-7 h-7 rounded-full transition-all duration-200 border ${
-                      selectedColor.id === color.id && selectedColor.id !== 'custom'
-                        ? 'border-white scale-110'
-                        : 'border-white/20 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color.bg }}
-                    title={color.name}
-                  />
-                ))}
-                {/* Custom color picker */}
-                <div className="relative">
-                  <input
-                    type="color"
-                    value={selectedColor.id === 'custom' ? selectedColor.bg : '#1a1a1a'}
-                    onChange={(e) => {
-                      setSelectedColor({
-                        id: 'custom',
-                        name: 'Custom',
-                        bg: e.target.value
-                      });
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div
-                    className={`w-7 h-7 rounded-full transition-all duration-200 flex items-center justify-center border ${
-                      selectedColor.id === 'custom'
-                        ? 'border-white scale-110'
-                        : 'border-white/20 hover:scale-105'
-                    }`}
-                    style={{
-                      background: 'conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)'
-                    }}
-                  >
-                    <div className="w-3 h-3 rounded-full bg-black/80" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="w-px h-6 sm:h-8 bg-white/10 flex-shrink-0" />
-
-            {/* Font */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-[11px] sm:text-[12px] text-white/40">Font</span>
-              <div className="flex gap-1.5">
-                {themeFonts.map((font) => (
-                  <button
-                    key={font.id}
-                    type="button"
-                    onClick={() => setSelectedFont(font)}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 ${font.style} ${
-                      selectedFont.id === font.id
-                        ? 'bg-white text-black'
-                        : 'bg-white/10 text-white/60 hover:bg-white/15'
-                    }`}
-                  >
-                    {font.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Seat Map Editor Modal */}
       <SeatMapEditorModal
@@ -1919,7 +2172,7 @@ export default function CreateEvent() {
 
       {/* Error Toast */}
       {submitError && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <div className="bg-red-500/90 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -1956,7 +2209,7 @@ export default function CreateEvent() {
           eventType,
           ticketTiers,
           currency,
-          themeColor: selectedColor.bg,
+          themeColor: effectiveBackgroundColor,
           themeFont: selectedFont.id,
         }}
         mapData={map}
