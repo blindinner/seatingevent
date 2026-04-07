@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { nanoid } from 'nanoid';
-import type { TicketTier, EventType } from '@/types/event';
+import type { TicketTier, EventType, EventLanguage } from '@/types/event';
 import { EventTypeSelector } from '@/components/create/EventTypeSelector';
 import { TicketTierEditor } from '@/components/create/TicketTierEditor';
 import { SeatMapEditorModal } from '@/components/create/SeatMapEditorModal';
@@ -349,9 +349,13 @@ function CategoryPriceInput({
 function DescriptionEditor({
   value,
   onChange,
+  rtl,
+  onRtlChange,
 }: {
   value: string;
   onChange: (value: string) => void;
+  rtl: boolean;
+  onRtlChange: (rtl: boolean) => void;
 }) {
   const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
@@ -392,8 +396,20 @@ function DescriptionEditor({
           onBlur={handleBlur}
           placeholder="Add description..."
           rows={3}
+          dir={rtl ? 'rtl' : 'ltr'}
           className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0 resize-none"
         />
+      </div>
+      {/* RTL Toggle */}
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-white/[0.06]">
+        <span className="text-[12px] text-white/40">Right to left</span>
+        <button
+          type="button"
+          onClick={() => onRtlChange(!rtl)}
+          className={`w-8 h-5 rounded-full p-0.5 transition-colors duration-200 ${rtl ? 'bg-white' : 'bg-white/10'}`}
+        >
+          <div className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-200 ${rtl ? 'translate-x-3 bg-black' : 'translate-x-0 bg-white'}`} />
+        </button>
       </div>
     </div>
   );
@@ -432,9 +448,12 @@ export default function EditEvent() {
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
   const [description, setDescription] = useState('');
+  const [descriptionRtl, setDescriptionRtl] = useState(false);
   const [hostedBy, setHostedBy] = useState('');
   const [requireApproval, setRequireApproval] = useState(false);
   const [sendQrCode, setSendQrCode] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
+  const [language, setLanguage] = useState<EventLanguage>('en');
   const [eventType, setEventType] = useState<EventType>('ga');
   const [ticketTiers, setTicketTiers] = useState<TicketTier[]>([]);
 
@@ -495,9 +514,12 @@ export default function EditEvent() {
         setLocationLat(event.location_lat || null);
         setLocationLng(event.location_lng || null);
         setDescription(event.description || '');
+        setDescriptionRtl(event.description_rtl || false);
         setHostedBy(event.hosted_by || '');
         setRequireApproval(event.require_approval || false);
         setSendQrCode(event.send_qr_code !== false); // Default to true
+        setIsDemo(event.is_demo || false);
+        setLanguage(event.language || 'en');
         setEventType(event.event_type || 'ga');
         setTicketTiers(event.ticket_tiers || [{ id: nanoid(), name: 'General Admission', price: 0, quantity: -1 }]);
         setCurrency(event.currency || DEFAULT_CURRENCY);
@@ -647,6 +669,7 @@ export default function EditEvent() {
         .update({
           name: eventName,
           description: description || null,
+          description_rtl: descriptionRtl,
           hosted_by: hostedBy || null,
           start_date: startDate,
           start_time: startTime,
@@ -663,6 +686,8 @@ export default function EditEvent() {
           theme_font: selectedFont.id,
           require_approval: requireApproval,
           send_qr_code: isFreeEvent ? sendQrCode : true, // Only applies to free events
+          is_demo: isDemo,
+          language,
           white_label_theme_id: whiteLabelThemeId || null,
         })
         .eq('id', eventId);
@@ -689,7 +714,7 @@ export default function EditEvent() {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: selectedColor.bg }}>
+    <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: selectedColor.bg }} dir={language === 'he' ? 'rtl' : 'ltr'}>
       {/* Background decorations - uses white-label theme if selected */}
       <BackgroundDecorations theme={whiteLabelTheme || undefined} />
 
@@ -942,6 +967,8 @@ export default function EditEvent() {
               <DescriptionEditor
                 value={description}
                 onChange={setDescription}
+                rtl={descriptionRtl}
+                onRtlChange={setDescriptionRtl}
               />
 
               {/* Hosted By */}
@@ -1136,6 +1163,63 @@ export default function EditEvent() {
                   >
                     <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${requireApproval ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'}`} />
                   </button>
+                </div>
+
+                {/* Demo Mode */}
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 15.5m14.8-.2l1.225 4.168a.75.75 0 01-.298.725 9.036 9.036 0 01-4.54 1.232 9.036 9.036 0 01-4.54-1.232.75.75 0 01-.297-.726l.407-1.39" />
+                    </svg>
+                    <div>
+                      <span className="text-[14px] text-white/70">Demo event</span>
+                      <p className="text-[12px] text-white/40">Payments won&apos;t be processed</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDemo(!isDemo)}
+                    className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${isDemo ? 'bg-amber-500' : 'bg-white/10'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${isDemo ? 'translate-x-4 bg-white' : 'translate-x-0 bg-white'}`} />
+                  </button>
+                </div>
+
+                {/* Language Selector */}
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                    </svg>
+                    <div>
+                      <span className="text-[14px] text-white/70">Event language</span>
+                      <p className="text-[12px] text-white/40">Hebrew enables RTL layout</p>
+                    </div>
+                  </div>
+                  <div className="flex rounded-lg overflow-hidden bg-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      className={`px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        language === 'en'
+                          ? 'bg-white text-black'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      EN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('he')}
+                      className={`px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        language === 'he'
+                          ? 'bg-white text-black'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      עב
+                    </button>
+                  </div>
                 </div>
 
                 {/* Send QR Code - Only show for free events */}

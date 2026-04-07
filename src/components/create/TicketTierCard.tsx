@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { TicketTier } from '@/types/event';
+import type { TicketTier, EventLanguage } from '@/types/event';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { useTranslation } from '@/lib/translations';
 
 interface TicketTierCardProps {
   tier: TicketTier;
@@ -12,9 +13,11 @@ interface TicketTierCardProps {
   canDelete: boolean;
   defaultExpanded?: boolean;
   isDarkMode?: boolean;
+  language?: EventLanguage;
 }
 
-export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, defaultExpanded = false, isDarkMode = true }: TicketTierCardProps) {
+export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, defaultExpanded = false, isDarkMode = true, language = 'en' }: TicketTierCardProps) {
+  const { t } = useTranslation(language);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Local state for price input to allow free typing
@@ -37,8 +40,8 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
   }, [tier.quantity]);
 
   const formatQuantity = (qty: number) => {
-    if (qty === -1) return 'Unlimited';
-    return `${qty} available`;
+    if (qty === -1) return t('unlimited');
+    return `${qty} ${t('available')}`;
   };
 
   const handlePriceBlur = () => {
@@ -73,7 +76,7 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
             </svg>
           </div>
           <div className="text-left">
-            <p className={`text-[14px] font-medium ${isDarkMode ? 'text-white/90' : 'text-zinc-800'}`}>{tier.name || 'Untitled Tier'}</p>
+            <p className={`text-[14px] font-medium ${isDarkMode ? 'text-white/90' : 'text-zinc-800'}`}>{tier.name || t('untitledTier')}</p>
             <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
               {formatCurrency(tier.price, currency)} · {formatQuantity(tier.quantity)}
             </p>
@@ -95,12 +98,12 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
         <div className={`px-4 pb-4 pt-2 space-y-4 border-t ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`}>
           {/* Tier Name */}
           <div>
-            <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Tier name</label>
+            <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('tierNameLabel')}</label>
             <input
               type="text"
               value={tier.name}
               onChange={(e) => onChange({ ...tier, name: e.target.value })}
-              placeholder="e.g., General Admission, VIP"
+              placeholder={t('tierNamePlaceholder')}
               className={`w-full px-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors ${
                 isDarkMode
                   ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
@@ -113,7 +116,7 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
           <div className="grid grid-cols-2 gap-3">
             {/* Price */}
             <div>
-              <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Price</label>
+              <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('price')}</label>
               <div className="relative">
                 <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-[14px] ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`}>{getCurrencySymbol(currency)}</span>
                 <input
@@ -131,20 +134,20 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
                 />
               </div>
               {tier.price === 0 && (
-                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>Leave empty for free</p>
+                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>{t('leaveEmptyForFree')}</p>
               )}
             </div>
 
             {/* Quantity */}
             <div>
-              <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Quantity</label>
+              <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('quantity')}</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={quantityInput}
                 onChange={(e) => setQuantityInput(e.target.value)}
                 onBlur={handleQuantityBlur}
-                placeholder="Unlimited"
+                placeholder={t('unlimited')}
                 className={`w-full px-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors ${
                   isDarkMode
                     ? 'text-white/90 placeholder:text-white/30 bg-white/[0.06] border border-white/[0.06] focus:border-white/20'
@@ -152,18 +155,18 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
                 }`}
               />
               {tier.quantity === -1 && (
-                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>Leave empty for unlimited</p>
+                <p className={`text-[11px] mt-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>{t('leaveEmptyForUnlimited')}</p>
               )}
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Description (optional)</label>
+            <label className={`block text-[12px] mb-1.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('descriptionOptional')}</label>
             <textarea
               value={tier.description || ''}
               onChange={(e) => onChange({ ...tier, description: e.target.value })}
-              placeholder="What's included with this ticket?"
+              placeholder={t('whatsIncluded')}
               rows={2}
               className={`w-full px-3 py-2 text-[14px] rounded-lg focus:outline-none transition-colors resize-none ${
                 isDarkMode
@@ -183,7 +186,7 @@ export function TicketTierCard({ tier, currency, onChange, onDelete, canDelete, 
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
-              Remove tier
+              {t('removeTier')}
             </button>
           )}
         </div>

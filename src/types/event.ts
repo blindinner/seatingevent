@@ -14,10 +14,12 @@ export interface EmailSettings {
 }
 
 export type EventType = 'ga' | 'seated';
+export type EventLanguage = 'en' | 'he';
 
 export interface CreateEventInput {
   name: string;
   description?: string;
+  descriptionRtl?: boolean; // Right-to-left text direction for description
   hostedBy?: string;
   startDate: string;
   startTime: string;
@@ -35,6 +37,8 @@ export interface CreateEventInput {
   accentColor?: string;
   requireApproval: boolean;
   sendQrCode?: boolean; // Whether to include QR code in confirmation emails (free events only)
+  isDemo?: boolean; // Demo events show full checkout flow but don't process payments
+  language?: EventLanguage; // Event page language (en = English, he = Hebrew with RTL)
   mapId?: string;
   userId: string;
   whiteLabelThemeId?: string;
@@ -49,6 +53,7 @@ export interface PublicEvent {
   slug: string | null; // Custom URL slug for branded events
   name: string;
   description: string | null;
+  descriptionRtl: boolean; // Right-to-left text direction for description
   hostedBy: string | null;
   startDate: string;
   startTime: string | null;
@@ -66,6 +71,8 @@ export interface PublicEvent {
   accentColor: string | null;
   requireApproval: boolean;
   sendQrCode: boolean; // Whether to include QR code in confirmation emails (free events only)
+  isDemo: boolean; // Demo events show full checkout flow but don't process payments
+  language: EventLanguage; // Event page language (en = English, he = Hebrew with RTL)
   mapId: string | null;
   userId: string;
   createdAt: string;

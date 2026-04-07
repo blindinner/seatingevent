@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if event has ended
+    // Check event details including demo status
     const { data: eventCheck } = await supabaseAdmin.client
       .from('events')
-      .select('start_date, start_time, end_date, end_time')
+      .select('start_date, start_time, end_date, end_time, is_demo')
       .eq('id', eventId)
       .single();
 
@@ -266,11 +266,25 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get AllPay config and base URL
-    console.log('Getting AllPay config...');
-    const config = getAllPayConfig();
+    // Get base URL
     const baseUrl = getBaseUrl();
     console.log('Base URL:', baseUrl);
+
+    // Check if this is a demo event - return demo flag so frontend can show demo UI
+    if (eventCheck?.is_demo) {
+      console.log('Demo event detected, returning demo flag');
+
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        paymentOrderId,
+        isDemo: true,
+      });
+    }
+
+    // Get AllPay config for real payments
+    console.log('Getting AllPay config...');
+    const config = getAllPayConfig();
 
     // Create payment with AllPay
     console.log('Creating AllPay payment...');

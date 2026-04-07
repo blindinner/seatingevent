@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import type { PublicEvent } from '@/types/event';
@@ -15,6 +15,19 @@ import { subscribeToEventSeats } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePageView } from '@/hooks/usePageView';
 import { SocialLinks } from '@/components/ui/SocialLinks';
+import { useTranslation } from '@/lib/translations';
+
+// Helper to determine if a color is light or dark based on luminance
+function isLightColor(hex: string): boolean {
+  // Remove # if present
+  const color = hex.replace('#', '');
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5;
+}
 
 // Adaptive cover image that handles both portrait and landscape images
 function AdaptiveCoverImage({ src, alt }: { src: string; alt: string }) {
@@ -75,6 +88,13 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
   // Track page view for analytics
   usePageView(event.id);
+
+  // Translations
+  const { t, isRtl, dir } = useTranslation(event.language);
+
+  // Determine if the theme is dark or light based on background color
+  const themeColor = event.themeColor || '#1a1a19';
+  const isDarkMode = useMemo(() => !isLightColor(themeColor), [themeColor]);
 
   // Live seat status - fetched client-side for real-time accuracy
   // Source of truth: bookings table via /api/events/[id]/seats
@@ -211,8 +231,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
   const startTimeStr = formatTime(event.startTime);
   const endTimeStr = formatTime(event.endTime);
 
-  // Theme
-  const themeColor = event.themeColor || '#1c1917';
+  // Theme - themeColor already defined above for isDarkMode calculation
   const themeFont = event.themeFont || 'default';
   const fontClass = themeFont === 'serif' ? 'font-serif' : themeFont === 'mono' ? 'font-mono' : 'font-sans';
   const accentColor = event.accentColor || null;
@@ -245,12 +264,12 @@ export function EventClient({ event, mapData }: EventClientProps) {
   };
 
   return (
-    <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: themeColor }}>
+    <div className="min-h-screen transition-colors duration-500" style={{ backgroundColor: themeColor }} dir={dir}>
       {/* Background decorations - uses white-label theme if available */}
       <BackgroundDecorations theme={event.whiteLabelTheme} />
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl border-b border-white/[0.04]" style={{ backgroundColor: `${themeColor}cc` }}>
+      <nav className={`sticky top-0 z-50 backdrop-blur-xl border-b ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`} style={{ backgroundColor: `${themeColor}cc` }}>
         <div className="max-w-6xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
           {event.whiteLabelTheme?.logoDestinationUrl ? (
             <a href={event.whiteLabelTheme.logoDestinationUrl} className="group" target="_blank" rel="noopener noreferrer">
@@ -284,7 +303,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {isOwner && (
               <Link
                 href={`/event/${event.id}/dashboard`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-white/70 hover:text-white bg-white/[0.08] hover:bg-white/[0.12] rounded-lg transition-colors"
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg transition-colors ${isDarkMode ? 'text-white/70 hover:text-white bg-white/[0.08] hover:bg-white/[0.12]' : 'text-zinc-700 hover:text-zinc-900 bg-black/[0.05] hover:bg-black/[0.08]'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -295,7 +314,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {/* Show selection summary in nav when seats selected (seated events only) */}
             {event.eventType === 'seated' && selectedSeats.length > 0 && (
               <>
-                <span className="hidden sm:inline text-[14px] text-white/60">
+                <span className={`hidden sm:inline text-[14px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>
                   {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} · {formatCurrency(totalPrice, event.currency)}
                 </span>
                 <button
@@ -306,7 +325,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                     color: buttonTextColor,
                   }}
                 >
-                  Get Tickets
+                  {t('getTickets')}
                 </button>
               </>
             )}
@@ -320,39 +339,39 @@ export function EventClient({ event, mapData }: EventClientProps) {
           {/* Left Column - Cover Image */}
           <div className="w-full lg:w-[340px] flex-shrink-0 space-y-5">
             {/* Cover Image - Adapts to portrait or landscape */}
-            <div className="relative rounded-3xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
+            <div className={`relative rounded-3xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
               {event.coverImageUrl ? (
                 <AdaptiveCoverImage src={event.coverImageUrl} alt={event.name} />
               ) : (
                 <div className="aspect-[4/5] flex flex-col items-center justify-center p-8 text-center">
-                  <div className="w-20 h-20 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-5">
-                    <svg className="w-10 h-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-5 ${isDarkMode ? 'bg-white/[0.04]' : 'bg-black/[0.04]'}`}>
+                    <svg className={`w-10 h-10 ${isDarkMode ? 'text-white/20' : 'text-zinc-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
                   </div>
-                  <p className="text-[15px] text-white/50 mb-1">No cover image</p>
+                  <p className={`text-[15px] mb-1 ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>No cover image</p>
                 </div>
               )}
             </div>
 
             {/* Selection Summary - Only show when seats selected (Desktop) */}
             {selectedSeats.length > 0 && (
-              <div className="hidden lg:block rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
-                <div className="p-5 border-b border-white/[0.03]">
-                  <h3 className="text-[15px] font-medium text-white/70">Your Selection</h3>
+              <div className={`hidden lg:block rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                <div className={`p-5 border-b ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
+                  <h3 className={`text-[15px] font-medium ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Your Selection</h3>
                 </div>
                 <div className="p-5 space-y-3 max-h-56 overflow-y-auto">
                   {selectedSeats.map((seat) => (
                     <div key={seat.seatId} className="flex justify-between text-[14px]">
-                      <span className="text-white/80">{seat.label}</span>
-                      <span className="text-white/60">{formatCurrency(seat.price, event.currency)}</span>
+                      <span className={isDarkMode ? 'text-white/80' : 'text-zinc-800'}>{seat.label}</span>
+                      <span className={isDarkMode ? 'text-white/60' : 'text-zinc-600'}>{formatCurrency(seat.price, event.currency)}</span>
                     </div>
                   ))}
                 </div>
-                <div className="p-5 border-t border-white/[0.03]">
+                <div className={`p-5 border-t ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
                   <div className="flex justify-between text-[17px] font-semibold mb-4">
-                    <span className="text-white">Total</span>
-                    <span className="text-white">{formatCurrency(getTotalPrice(), event.currency)}</span>
+                    <span className={isDarkMode ? 'text-white' : 'text-zinc-900'}>Total</span>
+                    <span className={isDarkMode ? 'text-white' : 'text-zinc-900'}>{formatCurrency(getTotalPrice(), event.currency)}</span>
                   </div>
                   <button
                     onClick={handleGetTickets}
@@ -362,7 +381,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                       color: buttonTextColor,
                     }}
                   >
-                    Get Tickets
+                    {t('getTickets')}
                   </button>
                 </div>
               </div>
@@ -373,7 +392,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
           <div className="flex-1 space-y-6">
             {/* Event Name */}
             <div>
-              <h1 className={`text-[2.5rem] lg:text-[3rem] font-bold text-white tracking-tight leading-tight ${fontClass}`}>
+              <h1 className={`text-[2.5rem] lg:text-[3rem] font-bold tracking-tight leading-tight ${fontClass} ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
                 {event.name}
               </h1>
             </div>
@@ -381,14 +400,14 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {/* Date/Time - Luma style with date widget */}
             <div className="flex items-start gap-5">
               {/* Date Widget */}
-              <div className="w-16 h-16 rounded-xl bg-white/[0.08] backdrop-blur-sm flex flex-col items-center justify-center flex-shrink-0">
-                <span className="text-[11px] text-white/50 uppercase tracking-wider font-medium">{startDateInfo.month}</span>
-                <span className="text-[24px] font-bold text-white leading-none">{startDateInfo.day}</span>
+              <div className={`w-16 h-16 rounded-xl backdrop-blur-sm flex flex-col items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white/[0.08]' : 'bg-black/[0.05]'}`}>
+                <span className={`text-[11px] uppercase tracking-wider font-medium ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>{startDateInfo.month}</span>
+                <span className={`text-[24px] font-bold leading-none ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{startDateInfo.day}</span>
               </div>
               {/* Date Details */}
               <div className="flex-1 pt-1">
-                <p className="text-[17px] text-white font-medium">{startDateInfo.fullDate}</p>
-                <p className="text-[15px] text-white/60 mt-1">
+                <p className={`text-[17px] font-medium ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{startDateInfo.fullDate}</p>
+                <p className={`text-[15px] mt-1 ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>
                   {startTimeStr}{endTimeStr ? ` - ${endTimeStr}` : ''}
                 </p>
               </div>
@@ -398,17 +417,17 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {event.location && (
               <div className="flex items-start gap-5">
                 {/* Location Icon */}
-                <div className="w-16 h-16 rounded-xl bg-white/[0.08] backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <div className={`w-16 h-16 rounded-xl backdrop-blur-sm flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white/[0.08]' : 'bg-black/[0.05]'}`}>
+                  <svg className={`w-6 h-6 ${isDarkMode ? 'text-white/60' : 'text-zinc-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
                 </div>
                 {/* Location Details */}
                 <div className="flex-1 pt-1">
-                  <p className="text-[17px] text-white font-medium">{event.location.split(',')[0]}</p>
+                  <p className={`text-[17px] font-medium ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{event.location.split(',')[0]}</p>
                   {event.location.includes(',') && (
-                    <p className="text-[15px] text-white/60 mt-1">{event.location.split(',').slice(1).join(',').trim()}</p>
+                    <p className={`text-[15px] mt-1 ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>{event.location.split(',').slice(1).join(',').trim()}</p>
                   )}
                 </div>
               </div>
@@ -418,15 +437,15 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {event.hostedBy && (
               <div className="flex items-start gap-5">
                 {/* Host Icon */}
-                <div className="w-16 h-16 rounded-xl bg-white/[0.08] backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <div className={`w-16 h-16 rounded-xl backdrop-blur-sm flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white/[0.08]' : 'bg-black/[0.05]'}`}>
+                  <svg className={`w-6 h-6 ${isDarkMode ? 'text-white/60' : 'text-zinc-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                   </svg>
                 </div>
                 {/* Host Details */}
                 <div className="flex-1 pt-1">
-                  <p className="text-[13px] text-white/40 uppercase tracking-wider font-medium">Hosted by</p>
-                  <p className="text-[17px] text-white font-medium mt-1">{event.hostedBy}</p>
+                  <p className={`text-[13px] uppercase tracking-wider font-medium ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('hostedBy')}</p>
+                  <p className={`text-[17px] font-medium mt-1 ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{event.hostedBy}</p>
                   {/* Social Links */}
                   {event.whiteLabelTheme?.socialLinks && (
                     <SocialLinks links={event.whiteLabelTheme.socialLinks} className="mt-3" iconSize="sm" />
@@ -437,20 +456,25 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
             {/* Description */}
             {event.description && (
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className="px-6 py-5">
-                  <h3 className="text-[13px] text-white/40 uppercase tracking-wider font-medium mb-3">About Event</h3>
-                  <p className="text-[16px] text-white/90 leading-relaxed whitespace-pre-wrap">{event.description}</p>
+                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-3 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('aboutEvent')}</h3>
+                  <p
+                    className={`text-[16px] leading-relaxed whitespace-pre-wrap ${isDarkMode ? 'text-white/90' : 'text-zinc-800'}`}
+                    dir={event.descriptionRtl ? 'rtl' : 'ltr'}
+                  >
+                    {event.description}
+                  </p>
                 </div>
               </div>
             )}
 
             {/* Location Map */}
             {event.location && event.locationLat && event.locationLng && (
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className="px-6 py-5">
-                  <h3 className="text-[13px] text-white/40 uppercase tracking-wider font-medium mb-1">Location</h3>
-                  <p className="text-[16px] text-white/90">{event.location}</p>
+                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('location')}</h3>
+                  <p className={`text-[16px] ${isDarkMode ? 'text-white/90' : 'text-zinc-800'}`}>{event.location}</p>
                 </div>
                 <div className="relative">
                   <iframe
@@ -465,10 +489,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
             {/* Seat Map */}
             {event.eventType === 'seated' && mapData && (
-              <div className="rounded-2xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
-                <div className="px-6 py-5 border-b border-white/[0.03]">
-                  <h3 className="text-[13px] text-white/40 uppercase tracking-wider font-medium mb-1">Select Your Seats</h3>
-                  <p className="text-[15px] text-white/70">Click on a seat to select it</p>
+              <div className={`rounded-2xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                <div className={`px-6 py-5 border-b ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
+                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Select Your Seats</h3>
+                  <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>Click on a seat to select it</p>
                 </div>
                 <SeatMapViewer
                   mapData={mapData}
@@ -484,23 +508,23 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
             {/* Ticket Tiers for GA events */}
             {event.eventType === 'ga' && event.ticketTiers && (
-              <div className="rounded-2xl overflow-hidden bg-white/[0.06] backdrop-blur-sm border border-transparent">
-                <div className="px-6 py-5 border-b border-white/[0.03]">
-                  <h3 className="text-[13px] text-white/40 uppercase tracking-wider font-medium mb-1">Tickets</h3>
-                  <p className="text-[15px] text-white/70">Select your tickets</p>
+              <div className={`rounded-2xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                <div className={`px-6 py-5 border-b ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
+                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Tickets</h3>
+                  <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>Select your tickets</p>
                 </div>
                 <div className="p-6">
-                  <TicketSelector tiers={ticketTiers} currency={event.currency} />
+                  <TicketSelector tiers={ticketTiers} currency={event.currency} isDarkMode={isDarkMode} />
 
                   {/* Get Tickets button - appears when tickets selected */}
                   {getTotalTickets() > 0 && (
-                    <div className="mt-6 pt-6 border-t border-white/[0.06]">
+                    <div className={`mt-6 pt-6 border-t ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <p className="text-[14px] text-white/60">
+                          <p className={`text-[14px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>
                             {getTotalTickets()} ticket{getTotalTickets() !== 1 ? 's' : ''} selected
                           </p>
-                          <p className="text-[20px] font-semibold text-white">
+                          <p className={`text-[20px] font-semibold ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
                             {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
                           </p>
                         </div>
@@ -513,7 +537,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                           color: buttonTextColor,
                         }}
                       >
-                        {isFreeEvent ? 'Register' : 'Get Tickets'}
+                        {isFreeEvent ? t('register') : t('getTickets')}
                       </button>
                     </div>
                   )}
@@ -523,11 +547,11 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
             {/* No map placeholder */}
             {event.eventType === 'seated' && !mapData && (
-              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-dashed border-white/10 p-10 text-center">
-                <svg className="w-14 h-14 text-white/20 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <div className={`rounded-2xl backdrop-blur-sm border border-dashed p-10 text-center ${isDarkMode ? 'bg-white/[0.06] border-white/10' : 'bg-black/[0.04] border-black/10'}`}>
+                <svg className={`w-14 h-14 mx-auto mb-4 ${isDarkMode ? 'text-white/20' : 'text-zinc-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                 </svg>
-                <p className="text-[16px] text-white/40">No seat map available</p>
+                <p className={`text-[16px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>No seat map available</p>
               </div>
             )}
           </div>
@@ -536,20 +560,20 @@ export function EventClient({ event, mapData }: EventClientProps) {
 
       {/* Mobile Fixed Footer - Only for seated events */}
       {event.eventType === 'seated' && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-t border-white/10 p-4">
+        <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl border-t p-4 ${isDarkMode ? 'bg-black/90 border-white/10' : 'bg-white/90 border-black/10'}`}>
           <div className="flex items-center justify-between">
             <div>
               {selectedSeats.length > 0 ? (
                 <>
-                  <p className="text-[12px] text-white/50">
+                  <p className={`text-[12px] ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>
                     {selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''} selected
                   </p>
-                  <p className="text-[16px] font-semibold text-white">
+                  <p className={`text-[16px] font-semibold ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
                     {formatCurrency(totalPrice, event.currency)}
                   </p>
                 </>
               ) : (
-                <p className="text-[14px] text-white/70">
+                <p className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>
                   Select seats to continue
                 </p>
               )}
@@ -563,7 +587,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 color: buttonTextColor,
               }}
             >
-              Get Tickets
+              {t('getTickets')}
             </button>
           </div>
         </div>
@@ -591,6 +615,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
         onSuccess={handlePaymentSuccess}
         error={checkoutError}
         whiteLabelTheme={event.whiteLabelTheme}
+        language={event.language}
       />
     </div>
   );

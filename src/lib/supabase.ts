@@ -124,6 +124,7 @@ export interface ExtendedDatabaseEvent {
   user_id: string;
   name: string;
   description: string | null;
+  description_rtl: boolean;
   hosted_by: string | null;
   start_date: string;
   start_time: string | null;
@@ -141,6 +142,8 @@ export interface ExtendedDatabaseEvent {
   accent_color: string | null;
   require_approval: boolean;
   send_qr_code: boolean;
+  is_demo: boolean;
+  language: 'en' | 'he';
   seat_status: Record<string, string>;
   created_at: string;
   white_label_theme_id: string | null;
@@ -163,6 +166,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       user_id: input.userId,
       name: input.name,
       description: input.description || null,
+      description_rtl: input.descriptionRtl || false,
       hosted_by: input.hostedBy || null,
       start_date: input.startDate,
       start_time: input.startTime || null,
@@ -180,6 +184,8 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       accent_color: input.accentColor || null,
       require_approval: input.requireApproval,
       send_qr_code: input.sendQrCode !== false, // Default to true
+      is_demo: input.isDemo || false,
+      language: input.language || 'en',
       seat_status: {},
       platform_fee_percent: feeConfig.platformFeePercent, // Use global fee config
       white_label_theme_id: input.whiteLabelThemeId || null,
@@ -280,6 +286,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     slug: event.slug,
     name: event.name,
     description: event.description,
+    descriptionRtl: event.description_rtl || false,
     hostedBy: event.hosted_by,
     startDate: event.start_date,
     startTime: event.start_time,
@@ -297,6 +304,8 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     accentColor: event.accent_color,
     requireApproval: event.require_approval,
     sendQrCode: event.send_qr_code !== false, // Default to true for backwards compatibility
+    isDemo: event.is_demo || false,
+    language: event.language || 'en',
     mapId: event.map_id,
     userId: event.user_id,
     createdAt: event.created_at,
@@ -339,6 +348,7 @@ export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string
     slug: event.slug,
     name: event.name,
     description: event.description,
+    descriptionRtl: event.description_rtl || false,
     hostedBy: event.hosted_by,
     startDate: event.start_date,
     startTime: event.start_time,
@@ -356,6 +366,8 @@ export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string
     accentColor: event.accent_color,
     requireApproval: event.require_approval,
     sendQrCode: event.send_qr_code !== false,
+    isDemo: event.is_demo || false,
+    language: event.language || 'en',
     mapId: event.map_id,
     userId: event.user_id,
     createdAt: event.created_at,

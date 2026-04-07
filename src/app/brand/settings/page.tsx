@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -14,7 +14,7 @@ export default function BrandSettingsPage() {
   const [themes, setThemes] = useState<WhiteLabelTheme[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<WhiteLabelTheme | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
@@ -26,6 +26,10 @@ export default function BrandSettingsPage() {
   const [defaultHostedBy, setDefaultHostedBy] = useState('');
   const [defaultLocation, setDefaultLocation] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+
+  // Track if initial load is complete to prevent auto-save on mount
+  const [isInitialized, setIsInitialized] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Upload state
   const [uploadingNav, setUploadingNav] = useState(false);
@@ -65,6 +69,7 @@ export default function BrandSettingsPage() {
   }, [user, authLoading, router]);
 
   const selectTheme = (theme: WhiteLabelTheme) => {
+    setIsInitialized(false); // Prevent auto-save during theme switch
     setSelectedTheme(theme);
     setNavLogoUrl(theme.navLogoUrl || '');
     setLogoDestinationUrl(theme.logoDestinationUrl || '');
@@ -74,20 +79,20 @@ export default function BrandSettingsPage() {
     setDefaultHostedBy(theme.defaultHostedBy || '');
     setDefaultLocation(theme.defaultLocation || '');
     setSocialLinks(theme.socialLinks || {});
+    // Allow auto-save after state settles
+    setTimeout(() => setIsInitialized(true), 100);
   };
 
-  const handleSave = async () => {
+  // Auto-save function
+  const performAutoSave = useCallback(async () => {
     if (!selectedTheme) return;
 
-    setSaving(true);
-    setMessage(null);
+    setAutoSaveStatus('saving');
 
     try {
-      // Get access token for API auth
       const session = await getSession();
       if (!session?.access_token) {
-        setMessage({ type: 'error', text: 'Please sign in again' });
-        setSaving(false);
+        setAutoSaveStatus('error');
         return;
       }
 
@@ -110,25 +115,43 @@ export default function BrandSettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Settings saved successfully!' });
-        // Refresh theme data
+        setAutoSaveStatus('saved');
         const data = await res.json();
         if (data.theme) {
-          const updatedThemes = themes.map(t =>
+          setThemes(prev => prev.map(t =>
             t.id === selectedTheme.id ? { ...t, ...data.theme } : t
-          );
-          setThemes(updatedThemes);
+          ));
         }
+        // Clear "saved" status after 2 seconds
+        setTimeout(() => setAutoSaveStatus('idle'), 2000);
       } else {
-        const data = await res.json();
-        setMessage({ type: 'error', text: data.error || 'Failed to save settings' });
+        setAutoSaveStatus('error');
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Network error. Please try again.' });
-    } finally {
-      setSaving(false);
+    } catch {
+      setAutoSaveStatus('error');
     }
-  };
+  }, [selectedTheme, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks]);
+
+  // Auto-save effect with debounce
+  useEffect(() => {
+    if (!isInitialized || !selectedTheme) return;
+
+    // Clear any existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (debounce 1 second)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      performAutoSave();
+    }, 1000);
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [isInitialized, selectedTheme, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks, performAutoSave]);
 
   const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
     setSocialLinks(prev => ({
@@ -246,14 +269,41 @@ export default function BrandSettingsPage() {
             </Link>
             <h1 className="text-xl font-bold">Brand Settings</h1>
           </div>
-          {selectedTheme && (
-            <div className="flex items-center gap-3">
-              {selectedTheme.navLogoUrl && (
-                <img src={selectedTheme.navLogoUrl} alt="" className="h-8 w-auto" />
+          <div className="flex items-center gap-4">
+            {/* Auto-save status indicator */}
+            <div className="flex items-center gap-2 text-[13px]">
+              {autoSaveStatus === 'saving' && (
+                <>
+                  <div className="animate-spin w-3 h-3 border border-white/30 border-t-white/60 rounded-full" />
+                  <span className="text-white/40">Saving...</span>
+                </>
               )}
-              <span className="text-white/60">{selectedTheme.name}</span>
+              {autoSaveStatus === 'saved' && (
+                <>
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-green-400/80">Saved</span>
+                </>
+              )}
+              {autoSaveStatus === 'error' && (
+                <>
+                  <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-red-400/80">Save failed</span>
+                </>
+              )}
             </div>
-          )}
+            {selectedTheme && (
+              <div className="flex items-center gap-3">
+                {selectedTheme.navLogoUrl && (
+                  <img src={selectedTheme.navLogoUrl} alt="" className="h-8 w-auto" />
+                )}
+                <span className="text-white/60">{selectedTheme.name}</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -512,30 +562,28 @@ export default function BrandSettingsPage() {
           </section>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-4">
-            <Link
-              href="/"
-              className="h-12 px-6 flex items-center justify-center text-[15px] font-medium text-white/60 hover:text-white transition-colors"
-            >
-              Cancel
-            </Link>
-            <button
-              onClick={() => setShowPreview(true)}
-              className="h-12 px-6 text-[15px] font-semibold rounded-full border border-white/20 text-white hover:bg-white/10 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Preview
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="h-12 px-8 text-[15px] font-semibold rounded-full bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+          <div className="flex items-center justify-between pt-4">
+            <p className="text-[13px] text-white/40">
+              Changes are saved automatically
+            </p>
+            <div className="flex gap-4">
+              <Link
+                href="/"
+                className="h-12 px-6 flex items-center justify-center text-[15px] font-medium text-white/60 hover:text-white transition-colors"
+              >
+                Done
+              </Link>
+              <button
+                onClick={() => setShowPreview(true)}
+                className="h-12 px-6 text-[15px] font-semibold rounded-full border border-white/20 text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Preview
+              </button>
+            </div>
           </div>
         </div>
       </main>

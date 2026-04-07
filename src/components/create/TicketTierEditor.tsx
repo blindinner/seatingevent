@@ -1,10 +1,11 @@
 'use client';
 
 import { nanoid } from 'nanoid';
-import type { TicketTier } from '@/types/event';
+import type { TicketTier, EventLanguage } from '@/types/event';
 import { TicketTierCard } from './TicketTierCard';
 import { CurrencySelector } from './CurrencySelector';
 import { formatCurrencyRange } from '@/lib/currency';
+import { useTranslation } from '@/lib/translations';
 
 interface TicketTierEditorProps {
   tiers: TicketTier[];
@@ -12,9 +13,11 @@ interface TicketTierEditorProps {
   onCurrencyChange: (currency: string) => void;
   onChange: (tiers: TicketTier[]) => void;
   isDarkMode?: boolean;
+  language?: EventLanguage;
 }
 
-export function TicketTierEditor({ tiers, currency, onCurrencyChange, onChange, isDarkMode = true }: TicketTierEditorProps) {
+export function TicketTierEditor({ tiers, currency, onCurrencyChange, onChange, isDarkMode = true, language = 'en' }: TicketTierEditorProps) {
+  const { t } = useTranslation(language);
   const handleTierChange = (index: number, updatedTier: TicketTier) => {
     const newTiers = [...tiers];
     newTiers[index] = updatedTier;
@@ -61,9 +64,9 @@ export function TicketTierEditor({ tiers, currency, onCurrencyChange, onChange, 
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
           </svg>
           <div>
-            <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Ticket Tiers</span>
-            <span className={`text-[12px] ml-2 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
-              {tiers.length} tier{tiers.length !== 1 ? 's' : ''} · {priceDisplay}
+            <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{t('ticketTiers')}</span>
+            <span className={`text-[12px] ${language === 'he' ? 'mr-2' : 'ml-2'} ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
+              {tiers.length} {tiers.length !== 1 ? t('tiers') : t('tier')} · {priceDisplay}
             </span>
           </div>
         </div>
@@ -82,6 +85,7 @@ export function TicketTierEditor({ tiers, currency, onCurrencyChange, onChange, 
             canDelete={tiers.length > 1}
             defaultExpanded={index === 0}
             isDarkMode={isDarkMode}
+            language={language}
           />
         ))}
 
@@ -98,7 +102,7 @@ export function TicketTierEditor({ tiers, currency, onCurrencyChange, onChange, 
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Add ticket tier
+          {t('addTicketTier')}
         </button>
       </div>
     </div>

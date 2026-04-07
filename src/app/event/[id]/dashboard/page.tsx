@@ -93,6 +93,9 @@ export default function DashboardPage() {
           createdAt: eventData.created_at,
           seatStatus,
           whiteLabelThemeId: eventData.white_label_theme_id || null,
+          descriptionRtl: eventData.description_rtl || false,
+          isDemo: eventData.is_demo || false,
+          language: eventData.language || 'en',
         };
         setEvent(publicEvent);
 

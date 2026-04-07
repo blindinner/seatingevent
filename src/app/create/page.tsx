@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { nanoid } from 'nanoid';
-import type { TicketTier, EventType } from '@/types/event';
+import type { TicketTier, EventType, EventLanguage } from '@/types/event';
 import { EventTypeSelector } from '@/components/create/EventTypeSelector';
 import { TicketTierEditor } from '@/components/create/TicketTierEditor';
 import { SeatMapEditorModal } from '@/components/create/SeatMapEditorModal';
@@ -21,6 +21,7 @@ import { SimpleAuthModal } from '@/components/auth/SimpleAuthModal';
 import { EventPreviewModal } from '@/components/create/EventPreviewModal';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Vibrant } from 'node-vibrant/browser';
+import { useTranslation } from '@/lib/translations';
 
 // Type for accent color
 type AccentColorOption = { id: string; name: string; color: string };
@@ -1198,6 +1199,22 @@ export default function CreateEvent() {
   ]);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [sendQrCode, setSendQrCode] = useState(true); // Whether to include QR code in confirmation emails
+  const [isDemo, setIsDemo] = useState(false); // Demo events don't process real payments
+  const [language, setLanguage] = useState<EventLanguage>('en'); // Event page language
+  const { t } = useTranslation(language); // Get translations based on selected language
+
+  // Update default tier name when language changes
+  // Now safe to use `t` in deps because useTranslation returns a stable reference
+  useEffect(() => {
+    setTicketTiers(prevTiers => prevTiers.map((tier, index) => {
+      // Only update the first tier if it has the default name
+      if (index === 0 && (tier.name === 'General Admission' || tier.name === 'כניסה כללית' || tier.name === '')) {
+        return { ...tier, name: t('generalAdmission') };
+      }
+      return tier;
+    }));
+  }, [t]);
+
   const [seatMapModalOpen, setSeatMapModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
@@ -1328,6 +1345,7 @@ export default function CreateEvent() {
         userId: currentUser.id,
         name: eventName,
         description: description || undefined,
+        descriptionRtl: language === 'he',
         hostedBy: hostedBy || undefined,
         startDate,
         startTime,
@@ -1345,6 +1363,8 @@ export default function CreateEvent() {
         accentColor: accentColor.color,
         requireApproval,
         sendQrCode: isFreeEvent ? sendQrCode : true, // Only applies to free events
+        isDemo,
+        language,
         whiteLabelThemeId: whiteLabelThemeId || undefined,
       });
 
@@ -1376,6 +1396,7 @@ export default function CreateEvent() {
     <div
       className={`min-h-screen transition-all duration-500 ${isDarkMode ? '' : 'text-zinc-900'}`}
       style={bgStyle}
+      dir={language === 'he' ? 'rtl' : 'ltr'}
     >
       {/* Background decorations - uses white-label theme if selected */}
       <BackgroundDecorations theme={whiteLabelTheme || undefined} />
@@ -1424,7 +1445,7 @@ export default function CreateEvent() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              Preview
+              {t('preview')}
             </button>
             <button
               type="submit"
@@ -1436,7 +1457,7 @@ export default function CreateEvent() {
                 color: ['gold', 'orange', 'teal'].includes(accentColor.id) ? '#000' : '#fff',
               }}
             >
-              {isSubmitting ? 'Creating...' : 'Create Event'}
+              {isSubmitting ? t('creating') : t('createEvent')}
             </button>
           </div>
         </div>
@@ -1729,7 +1750,7 @@ export default function CreateEvent() {
                   type="text"
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
-                  placeholder="Event name"
+                  placeholder={t('eventNamePlaceholder')}
                   className={`w-full text-[1.75rem] sm:text-[2.5rem] font-semibold bg-transparent focus:outline-none tracking-tight ${selectedFont.style} ${isDarkMode ? 'text-white placeholder:text-white/20' : 'text-zinc-900 placeholder:text-zinc-400'}`}
                   autoFocus
                 />
@@ -1744,7 +1765,7 @@ export default function CreateEvent() {
                       <div className="w-10 flex items-center">
                         <div className={`w-2 h-2 rounded-full border-2 ${isDarkMode ? 'border-white/50' : 'border-zinc-400'}`} />
                       </div>
-                      <span className={`text-[13px] w-12 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Start</span>
+                      <span className={`text-[13px] w-12 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('start')}</span>
                       {/* Start Date */}
                       <div className="flex-1">
                         <button
@@ -1797,7 +1818,7 @@ export default function CreateEvent() {
                       <div className="w-10 flex items-center">
                         <div className={`w-2 h-2 rounded-full ${isDarkMode ? 'bg-white/50' : 'bg-zinc-400'}`} />
                       </div>
-                      <span className={`text-[13px] w-12 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>End</span>
+                      <span className={`text-[13px] w-12 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('end')}</span>
                       {/* End Date */}
                       <div className="flex-1">
                         <button
@@ -1903,8 +1924,9 @@ export default function CreateEvent() {
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add description..."
+                    placeholder={t('descriptionPlaceholder')}
                     rows={3}
+                    dir={language === 'he' ? 'rtl' : 'ltr'}
                     className={`flex-1 text-[14px] bg-transparent border-none focus:outline-none focus:ring-0 resize-none ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
                   />
                 </div>
@@ -1920,7 +1942,7 @@ export default function CreateEvent() {
                     type="text"
                     value={hostedBy}
                     onChange={(e) => setHostedBy(e.target.value)}
-                    placeholder="Hosted by..."
+                    placeholder={t('organizerPlaceholder')}
                     className={`flex-1 text-[14px] bg-transparent border-none focus:outline-none focus:ring-0 ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
                   />
                 </div>
@@ -1957,8 +1979,8 @@ export default function CreateEvent() {
 
               {/* Event Type Selector */}
               <div className="space-y-3">
-                <p className={`text-[12px] uppercase tracking-wider px-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Event Type</p>
-                <EventTypeSelector value={eventType} onChange={setEventType} isDarkMode={isDarkMode} />
+                <p className={`text-[12px] uppercase tracking-wider px-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('eventType')}</p>
+                <EventTypeSelector value={eventType} onChange={setEventType} isDarkMode={isDarkMode} language={language} />
               </div>
 
               {/* Ticket Tiers (for GA events) */}
@@ -1969,6 +1991,7 @@ export default function CreateEvent() {
                   onCurrencyChange={setCurrency}
                   onChange={setTicketTiers}
                   isDarkMode={isDarkMode}
+                  language={language}
                 />
               )}
 
@@ -2077,7 +2100,7 @@ export default function CreateEvent() {
                     <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
-                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Capacity</span>
+                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{t('capacity')}</span>
                   </div>
                   <span className={`text-[14px] ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>{getCapacityDisplay()}</span>
                 </div>
@@ -2088,7 +2111,7 @@ export default function CreateEvent() {
                     <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Require approval</span>
+                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{t('requireApproval')}</span>
                   </div>
                   <button
                     type="button"
@@ -2107,6 +2130,71 @@ export default function CreateEvent() {
                   </button>
                 </div>
 
+                {/* Demo Mode */}
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 15.5m14.8-.2l1.225 4.168a.75.75 0 01-.298.725 9.036 9.036 0 01-4.54 1.232 9.036 9.036 0 01-4.54-1.232.75.75 0 01-.297-.726l.407-1.39" />
+                    </svg>
+                    <div>
+                      <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{t('demoMode')}</span>
+                      <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('demoModeDesc')}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDemo(!isDemo)}
+                    className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${
+                      isDemo
+                        ? isDarkMode ? 'bg-amber-500' : 'bg-amber-500'
+                        : isDarkMode ? 'bg-white/10' : 'bg-zinc-200'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${
+                      isDemo
+                        ? 'translate-x-4 bg-white'
+                        : isDarkMode ? 'translate-x-0 bg-white' : 'translate-x-0 bg-zinc-500'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Language Selector */}
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <svg className={`w-5 h-5 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+                    </svg>
+                    <div>
+                      <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{t('eventLanguage')}</span>
+                      <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('eventLanguageDesc')}</p>
+                    </div>
+                  </div>
+                  <div className={`flex rounded-lg overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-zinc-200'}`}>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      className={`px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        language === 'en'
+                          ? isDarkMode ? 'bg-white text-black' : 'bg-zinc-900 text-white'
+                          : isDarkMode ? 'text-white/60 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
+                    >
+                      EN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('he')}
+                      className={`px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        language === 'he'
+                          ? isDarkMode ? 'bg-white text-black' : 'bg-zinc-900 text-white'
+                          : isDarkMode ? 'text-white/60 hover:text-white' : 'text-zinc-600 hover:text-zinc-900'
+                      }`}
+                    >
+                      עב
+                    </button>
+                  </div>
+                </div>
+
                 {/* Send QR Code - Only show for free events */}
                 {isFreeEvent && (
                   <div className="flex items-center justify-between px-4 py-3.5">
@@ -2116,8 +2204,8 @@ export default function CreateEvent() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                       </svg>
                       <div>
-                        <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Include QR code</span>
-                        <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Send QR code in confirmation email</p>
+                        <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>{t('includeQrCode')}</span>
+                        <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('includeQrCodeDesc')}</p>
                       </div>
                     </div>
                     <button

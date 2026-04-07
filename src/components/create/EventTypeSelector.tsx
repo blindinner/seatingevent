@@ -1,14 +1,17 @@
 'use client';
 
-import type { EventType } from '@/types/event';
+import type { EventType, EventLanguage } from '@/types/event';
+import { useTranslation } from '@/lib/translations';
 
 interface EventTypeSelectorProps {
   value: EventType;
   onChange: (value: EventType) => void;
   isDarkMode?: boolean;
+  language?: EventLanguage;
 }
 
-export function EventTypeSelector({ value, onChange, isDarkMode = true }: EventTypeSelectorProps) {
+export function EventTypeSelector({ value, onChange, isDarkMode = true, language = 'en' }: EventTypeSelectorProps) {
+  const { t } = useTranslation(language);
   return (
     <div className="grid grid-cols-2 gap-3">
       {/* General Admission Card */}
@@ -55,10 +58,10 @@ export function EventTypeSelector({ value, onChange, isDarkMode = true }: EventT
                 ? isDarkMode ? 'text-white' : 'text-zinc-900'
                 : isDarkMode ? 'text-white/70' : 'text-zinc-700'
             }`}>
-              General Admission
+              {t('generalAdmission')}
             </p>
             <p className={`text-[12px] mt-0.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
-              Tickets without assigned seats
+              {t('ticketsWithoutSeats')}
             </p>
           </div>
         </div>
@@ -117,10 +120,10 @@ export function EventTypeSelector({ value, onChange, isDarkMode = true }: EventT
                 ? isDarkMode ? 'text-white' : 'text-zinc-900'
                 : isDarkMode ? 'text-white/70' : 'text-zinc-700'
             }`}>
-              Seated Event
+              {t('seatedEvent')}
             </p>
             <p className={`text-[12px] mt-0.5 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
-              Let guests pick their seats
+              {t('letGuestsPickSeats')}
             </p>
           </div>
         </div>
