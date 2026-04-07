@@ -392,7 +392,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
           <div className="flex-1 space-y-6">
             {/* Event Name */}
             <div>
-              <h1 className={`text-[2.5rem] lg:text-[3rem] font-bold tracking-tight leading-tight ${fontClass} ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+              <h1 className={`text-[1.75rem] sm:text-[2rem] md:text-[2.5rem] lg:text-[3rem] font-bold tracking-tight leading-tight break-words ${fontClass} ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
                 {event.name}
               </h1>
             </div>
