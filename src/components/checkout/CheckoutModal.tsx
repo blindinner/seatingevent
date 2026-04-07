@@ -779,7 +779,7 @@ export function CheckoutModal({
                     Ready to wow <span className="font-semibold">your</span> audience?
                   </p>
                   <p className={`text-[13px] mb-4 ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>
-                    Let's make it happen together
+                    Let&apos;s make it happen together
                   </p>
 
                   <div className="flex gap-3">
