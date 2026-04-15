@@ -1138,7 +1138,7 @@ export default function CreateEvent() {
   const { user, loading: authLoading } = useAuth();
   const [eventName, setEventName] = useState('');
   const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [coverImageIsLandscape, setCoverImageIsLandscape] = useState(false);
+  const [coverImageAspect, setCoverImageAspect] = useState<'portrait' | 'landscape' | 'square'>('portrait');
   const [startDate, setStartDate] = useState(() => formatLocalDate(new Date()));
   const [startTime, setStartTime] = useState('19:00');
   const [endDate, setEndDate] = useState(() => formatLocalDate(new Date()));
@@ -1472,7 +1472,7 @@ export default function CreateEvent() {
               {/* Cover Image */}
               <div className={`relative rounded-3xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 {coverImage ? (
-                  <div className={`${coverImageIsLandscape ? 'aspect-[16/10]' : 'aspect-[4/5]'} relative group`}>
+                  <div className={`${{ portrait: 'aspect-[4/5]', landscape: 'aspect-[16/10]', square: 'aspect-square' }[coverImageAspect]} relative group`}>
                     <img
                       src={coverImage}
                       alt="Event cover"
@@ -1494,7 +1494,16 @@ export default function CreateEvent() {
                                 setCoverImage(dataUrl);
                                 // Detect aspect ratio
                                 const img = new window.Image();
-                                img.onload = () => setCoverImageIsLandscape(img.width > img.height);
+                                img.onload = () => {
+                                  const ratio = img.width / img.height;
+                                  if (ratio >= 0.9 && ratio <= 1.1) {
+                                    setCoverImageAspect('square');
+                                  } else if (img.width > img.height) {
+                                    setCoverImageAspect('landscape');
+                                  } else {
+                                    setCoverImageAspect('portrait');
+                                  }
+                                };
                                 img.src = dataUrl;
                                 // Extract colors from image
                                 const colors = await extractColorsFromImage(dataUrl);
@@ -1517,7 +1526,7 @@ export default function CreateEvent() {
                       type="button"
                       onClick={() => {
                         setCoverImage(null);
-                        setCoverImageIsLandscape(false);
+                        setCoverImageAspect('portrait');
                         // Reset to no accent
                         setExtractedColors([]);
                         setAccentColor({ id: 'none', name: 'None', color: '#888888' });
@@ -1544,7 +1553,16 @@ export default function CreateEvent() {
                             setCoverImage(dataUrl);
                             // Detect aspect ratio
                             const img = new window.Image();
-                            img.onload = () => setCoverImageIsLandscape(img.width > img.height);
+                            img.onload = () => {
+                              const ratio = img.width / img.height;
+                              if (ratio >= 0.9 && ratio <= 1.1) {
+                                setCoverImageAspect('square');
+                              } else if (img.width > img.height) {
+                                setCoverImageAspect('landscape');
+                              } else {
+                                setCoverImageAspect('portrait');
+                              }
+                            };
                             img.src = dataUrl;
                             // Extract colors from image
                             const colors = await extractColorsFromImage(dataUrl);

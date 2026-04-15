@@ -29,28 +29,40 @@ function isLightColor(hex: string): boolean {
   return luminance > 0.5;
 }
 
-// Adaptive cover image that handles both portrait and landscape images
+// Adaptive cover image that handles portrait, landscape, and square images
 function AdaptiveCoverImage({ src, alt }: { src: string; alt: string }) {
-  const [isLandscape, setIsLandscape] = useState(false);
+  const [aspectType, setAspectType] = useState<'portrait' | 'landscape' | 'square'>('portrait');
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
-      setIsLandscape(img.width > img.height);
+      const ratio = img.width / img.height;
+      // Square if aspect ratio is between 0.9 and 1.1
+      if (ratio >= 0.9 && ratio <= 1.1) {
+        setAspectType('square');
+      } else if (img.width > img.height) {
+        setAspectType('landscape');
+      } else {
+        setAspectType('portrait');
+      }
       setLoaded(true);
     };
     img.src = src;
   }, [src]);
 
+  const aspectClass = {
+    portrait: 'aspect-[4/5]',
+    landscape: 'aspect-[16/10]',
+    square: 'aspect-square',
+  }[aspectType];
+
   return (
-    <div className={loaded ? (isLandscape ? 'aspect-[16/10]' : 'aspect-[4/5]') : 'aspect-[4/5]'}>
+    <div className={loaded ? aspectClass : 'aspect-[4/5]'}>
       <img
         src={src}
         alt={alt}
-        className={`w-full h-full ${loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ${
-          isLandscape ? 'object-cover' : 'object-cover'
-        }`}
+        className={`w-full h-full ${loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 object-cover`}
       />
     </div>
   );
