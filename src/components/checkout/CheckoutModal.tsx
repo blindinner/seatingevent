@@ -51,6 +51,12 @@ interface CheckoutModalProps {
   error?: string | null;
   whiteLabelTheme?: WhiteLabelTheme | null;
   language?: EventLanguage;
+  embedStyles?: {
+    primaryColor?: string;
+    backgroundColor?: string;
+    borderRadius?: string;
+    buttonBorderRadius?: string;
+  };
 }
 
 export interface CustomerInfo {
@@ -91,6 +97,7 @@ export function CheckoutModal({
   error: externalError,
   whiteLabelTheme,
   language = 'en',
+  embedStyles: _embedStyles,
 }: CheckoutModalProps) {
   const { t, isRtl, dir } = useTranslation(language);
   const isDarkMode = useMemo(() => !isLightColor(themeColor), [themeColor]);
