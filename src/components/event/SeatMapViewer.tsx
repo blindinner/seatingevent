@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   MapData, MapElement, SeatElement, RowElement, SectionElement, TableElement,
   CategoryConfig, RectangleElement, TextElement, LineElement, AreaElement,
@@ -44,7 +45,13 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
   const [hoveredSeat, setHoveredSeat] = useState<{ seat: SeatElement; category: CategoryConfig | undefined } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-  const { toggleSeat, isSeatSelected, selectedSeats } = useSeatSelectionStore();
+  const selectedSeats = useSeatSelectionStore((state) => state.selectedSeats);
+  const toggleSeat = useSeatSelectionStore((state) => state.toggleSeat);
+
+  // Check if seat is selected - using selectedSeats directly ensures re-renders
+  const isSeatSelected = useCallback((seatId: string) => {
+    return selectedSeats.some(s => s.seatId === seatId);
+  }, [selectedSeats]);
 
   // Get category config by ID
   const getCategoryConfig = useCallback((categoryId: string): CategoryConfig | undefined => {
@@ -250,6 +257,11 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     setTooltipPosition({ x: e.clientX, y: e.clientY });
   }, [getCategoryConfig]);
 
+  // Update tooltip position on mouse move within seat
+  const handleSeatMouseMove = useCallback((e: React.MouseEvent) => {
+    setTooltipPosition({ x: e.clientX, y: e.clientY });
+  }, []);
+
   const handleSeatLeave = useCallback(() => {
     setHoveredSeat(null);
   }, []);
@@ -273,8 +285,8 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     let opacity = 1;
 
     if (isSelected) {
-      fillColor = accentColor || '#22C55E'; // Use accent color or fallback to green
-      strokeColor = accentColor ? adjustColorBrightness(accentColor, -20) : '#16A34A';
+      fillColor = '#22C55E'; // Green for selected
+      strokeColor = '#16A34A';
       strokeWidth = 2;
     } else if (isUnavailable) {
       fillColor = '#1f1f1f'; // Dark gray for unavailable
@@ -287,6 +299,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         key={seat.id}
         onClick={() => handleSeatClick(seat, parentCategory)}
         onMouseEnter={(e) => handleSeatHover(e, seat, parentCategory)}
+        onMouseMove={handleSeatMouseMove}
         onMouseLeave={handleSeatLeave}
         style={{ cursor: isUnavailable ? 'not-allowed' : 'pointer' }}
       >
@@ -855,28 +868,30 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         </div>
       </div>
 
-      {/* Tooltip */}
-      {hoveredSeat && (
+      {/* Tooltip - rendered via portal to avoid parent transform issues */}
+      {hoveredSeat && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-50 bg-black/90 backdrop-blur-sm rounded-lg px-3 py-2 pointer-events-none"
+          className="fixed z-[9999] bg-black/95 backdrop-blur-sm rounded-lg px-3 py-2 pointer-events-none shadow-xl border border-white/10"
           style={{
-            left: tooltipPosition.x + 10,
-            top: tooltipPosition.y - 40,
+            left: tooltipPosition.x + 15,
+            top: tooltipPosition.y - 15,
           }}
         >
           <div className="text-[13px] text-white font-medium">{hoveredSeat.seat.label}</div>
-          {hoveredSeat.category && (
-            <div className="text-[12px] text-white/60">
-              {hoveredSeat.category.name}
-              {hoveredSeat.category.price !== undefined && (
-                <span className="ml-2">{formatCurrency(hoveredSeat.category.price, currency)}</span>
-              )}
-            </div>
-          )}
+          <div className="text-[12px] text-white/60">
+            {hoveredSeat.category?.name || 'General'}
+            {(() => {
+              const price = hoveredSeat.seat.price ?? hoveredSeat.category?.price;
+              return price !== undefined && price > 0 ? (
+                <span className="ml-2 text-white/80">{formatCurrency(price, currency)}</span>
+              ) : null;
+            })()}
+          </div>
           {(hoveredSeat.seat.status === 'booked' || hoveredSeat.seat.status === 'reserved') && (
             <div className="text-[11px] text-red-400 mt-1">Unavailable</div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

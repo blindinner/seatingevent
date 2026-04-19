@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cinema City - Test CMS Integration</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .header {
+      background: #1a1a1a;
+      padding: 20px 40px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #f59e0b;
+      cursor: pointer;
+    }
+    .nav {
+      display: flex;
+      gap: 30px;
+    }
+    .nav a {
+      color: #888;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .nav a:hover {
+      color: #fff;
+    }
+    .page {
+      display: none;
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .page.active {
+      display: block;
+    }
+
+    /* Homepage Styles */
+    .homepage-title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .homepage-subtitle {
+      color: #888;
+      margin-bottom: 40px;
+    }
+    .movies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 800px;
+    }
+    .movie-card {
+      background: #1a1a1a;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 2px solid transparent;
+    }
+    .movie-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      border-color: #f59e0b;
+    }
+    .movie-card-poster {
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 120px;
+      font-weight: bold;
+    }
+    .movie-card-poster.avengers {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f1c2e 100%);
+      color: #3b82f6;
+    }
+    .movie-card-poster.batman {
+      background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
+      color: #fbbf24;
+    }
+    .movie-card-info {
+      padding: 20px;
+    }
+    .movie-card-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .movie-card-meta {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .movie-card-cta {
+      display: inline-block;
+      background: #f59e0b;
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    /* Movie Page Styles */
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #888;
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 30px;
+      cursor: pointer;
+    }
+    .back-button:hover {
+      color: #fff;
+    }
+    .movie-header {
+      display: flex;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .movie-poster {
+      width: 300px;
+      height: 450px;
+      background: #333;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 100px;
+      flex-shrink: 0;
+    }
+    .movie-poster.avengers {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f1c2e 100%);
+      color: #3b82f6;
+    }
+    .movie-poster.batman {
+      background: linear-gradient(135deg, #1a1a1a 0%, #000 100%);
+      color: #fbbf24;
+    }
+    .movie-info {
+      flex: 1;
+    }
+    .movie-title {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .movie-meta {
+      color: #888;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .movie-description {
+      color: #ccc;
+      line-height: 1.6;
+      font-size: 16px;
+      max-width: 600px;
+    }
+    .ticket-section {
+      margin-top: 40px;
+    }
+    .ticket-section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #f59e0b;
+    }
+    .embed-container {
+      border-radius: 16px;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+    .embed-info {
+      background: #1a1a1a;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #10b981;
+      word-break: break-all;
+    }
+
+    @media (max-width: 768px) {
+      .movie-header {
+        flex-direction: column;
+      }
+      .movie-poster {
+        width: 100%;
+        height: 300px;
+      }
+      .movie-title {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Simulated Cinema Website Header -->
+  <header class="header">
+    <div class="logo" onclick="showPage('home')">Cinema City</div>
+    <nav class="nav">
+      <a href="#" onclick="showPage('home')">Now Playing</a>
+      <a href="#">Coming Soon</a>
+      <a href="#">Locations</a>
+      <a href="#">Gift Cards</a>
+    </nav>
+  </header>
+
+  <!-- Homepage - Movie Selection -->
+  <div id="home" class="page active">
+    <h1 class="homepage-title">Now Playing</h1>
+    <p class="homepage-subtitle">Select a movie to buy tickets</p>
+
+    <div class="movies-grid">
+      <!-- Avengers Card -->
+      <div class="movie-card" onclick="showPage('avengers')">
+        <div class="movie-card-poster avengers">A</div>
+        <div class="movie-card-info">
+          <h3 class="movie-card-title">Avengers: Secret Wars</h3>
+          <p class="movie-card-meta">Action, Sci-Fi | 2h 45m</p>
+          <span class="movie-card-cta">Get Tickets</span>
+        </div>
+      </div>
+
+      <!-- Batman Card -->
+      <div class="movie-card" onclick="showPage('batman')">
+        <div class="movie-card-poster batman">B</div>
+        <div class="movie-card-info">
+          <h3 class="movie-card-title">The Batman: Part II</h3>
+          <p class="movie-card-meta">Action, Crime | 2h 50m</p>
+          <span class="movie-card-cta">Get Tickets</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movie 1: Avengers -->
+  <div id="avengers" class="page">
+    <a class="back-button" onclick="showPage('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to Movies
+    </a>
+
+    <div class="movie-header">
+      <div class="movie-poster avengers">A</div>
+      <div class="movie-info">
+        <h1 class="movie-title">Avengers: Secret Wars</h1>
+        <div class="movie-meta">2024 | Action, Sci-Fi | 2h 45m | PG-13</div>
+        <p class="movie-description">
+          The epic conclusion to the Multiverse Saga. Earth's mightiest heroes face their greatest challenge
+          as the multiverse itself hangs in the balance. Featuring the largest superhero ensemble ever assembled.
+        </p>
+      </div>
+    </div>
+
+    <div class="ticket-section">
+      <h2>Get Tickets</h2>
+      <div class="embed-container">
+        <iframe
+          id="avengers-iframe"
+          src="/embed/match/YOUR-THEME-SLUG/avengers-2024"
+          width="100%"
+          height="500"
+          frameborder="0"
+          style="border: none;"
+        ></iframe>
+      </div>
+      <div class="embed-info">
+        External ID: avengers-2024
+      </div>
+    </div>
+  </div>
+
+  <!-- Movie 2: Batman -->
+  <div id="batman" class="page">
+    <a class="back-button" onclick="showPage('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to Movies
+    </a>
+
+    <div class="movie-header">
+      <div class="movie-poster batman">B</div>
+      <div class="movie-info">
+        <h1 class="movie-title">The Batman: Part II</h1>
+        <div class="movie-meta">2024 | Action, Crime | 2h 50m | R</div>
+        <p class="movie-description">
+          Batman returns to Gotham's criminal underworld. When a new threat emerges from the shadows,
+          the Dark Knight must confront his own demons while protecting the city he swore to defend.
+        </p>
+      </div>
+    </div>
+
+    <div class="ticket-section">
+      <h2>Get Tickets</h2>
+      <div class="embed-container">
+        <iframe
+          id="batman-iframe"
+          src="/embed/match/YOUR-THEME-SLUG/batman-2024"
+          width="100%"
+          height="500"
+          frameborder="0"
+          style="border: none;"
+        ></iframe>
+      </div>
+      <div class="embed-info">
+        External ID: batman-2024
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showPage(pageId) {
+      // Hide all pages
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      // Show selected page
+      document.getElementById(pageId).classList.add('active');
+      // Scroll to top
+      window.scrollTo(0, 0);
+    }
+
+    // Get theme slug from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const themeSlug = urlParams.get('slug');
+
+    if (themeSlug) {
+      // Update all iframe sources
+      document.getElementById('avengers-iframe').src = `/embed/match/${themeSlug}/avengers-2024`;
+      document.getElementById('batman-iframe').src = `/embed/match/${themeSlug}/batman-2024`;
+    }
+  </script>
+</body>
+</html>

@@ -143,6 +143,7 @@ export interface ExtendedDatabaseEvent {
   require_approval: boolean;
   send_qr_code: boolean;
   is_demo: boolean;
+  is_draft: boolean;
   language: 'en' | 'he';
   seat_status: Record<string, string>;
   created_at: string;
@@ -185,6 +186,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       require_approval: input.requireApproval,
       send_qr_code: input.sendQrCode !== false, // Default to true
       is_demo: input.isDemo || false,
+      is_draft: input.isDraft || false,
       language: input.language || 'en',
       seat_status: {},
       platform_fee_percent: feeConfig.platformFeePercent, // Use global fee config
@@ -305,6 +307,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     requireApproval: event.require_approval,
     sendQrCode: event.send_qr_code !== false, // Default to true for backwards compatibility
     isDemo: event.is_demo || false,
+    isDraft: event.is_draft || false,
     language: event.language || 'en',
     mapId: event.map_id,
     userId: event.user_id,
@@ -367,6 +370,7 @@ export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string
     requireApproval: event.require_approval,
     sendQrCode: event.send_qr_code !== false,
     isDemo: event.is_demo || false,
+    isDraft: event.is_draft || false,
     language: event.language || 'en',
     mapId: event.map_id,
     userId: event.user_id,

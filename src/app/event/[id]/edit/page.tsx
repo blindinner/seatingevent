@@ -453,6 +453,7 @@ export default function EditEvent() {
   const [requireApproval, setRequireApproval] = useState(false);
   const [sendQrCode, setSendQrCode] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
   const [language, setLanguage] = useState<EventLanguage>('en');
   const [eventType, setEventType] = useState<EventType>('ga');
   const [ticketTiers, setTicketTiers] = useState<TicketTier[]>([]);
@@ -519,6 +520,7 @@ export default function EditEvent() {
         setRequireApproval(event.require_approval || false);
         setSendQrCode(event.send_qr_code !== false); // Default to true
         setIsDemo(event.is_demo || false);
+        setIsDraft(event.is_draft || false);
         setLanguage(event.language || 'en');
         setEventType(event.event_type || 'ga');
         setTicketTiers(event.ticket_tiers || [{ id: nanoid(), name: 'General Admission', price: 0, quantity: -1 }]);
@@ -539,14 +541,26 @@ export default function EditEvent() {
         // Load white-label theme if set
         if (event.white_label_theme_id) {
           setWhiteLabelThemeId(event.white_label_theme_id);
-          // Fetch the theme details
-          const { getThemeById } = await import('@/lib/whiteLabel');
-          const theme = await getThemeById(event.white_label_theme_id);
-          if (theme) {
-            setWhiteLabelTheme(theme);
-            if (theme.brandColor) {
-              setSelectedColor({ id: 'brand', name: 'Brand', bg: theme.brandColor });
+          // Fetch the theme details via API (client-side can't use admin client)
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const themeRes = await fetch(`/api/white-label/themes/${event.white_label_theme_id}`, {
+              headers: session?.access_token ? {
+                'Authorization': `Bearer ${session.access_token}`,
+              } : {},
+            });
+            if (themeRes.ok) {
+              const themeData = await themeRes.json();
+              if (themeData.theme) {
+                setWhiteLabelTheme(themeData.theme);
+                if (themeData.theme.brandColor) {
+                  setSelectedColor({ id: 'brand', name: 'Brand', bg: themeData.theme.brandColor });
+                }
+              }
             }
+          } catch (themeError) {
+            console.warn('Could not load white-label theme:', themeError);
+            // Continue without theme - not critical for editing
           }
         }
 
@@ -687,6 +701,7 @@ export default function EditEvent() {
           require_approval: requireApproval,
           send_qr_code: isFreeEvent ? sendQrCode : true, // Only applies to free events
           is_demo: isDemo,
+          is_draft: isDraft,
           language,
           white_label_theme_id: whiteLabelThemeId || null,
         })
@@ -1162,6 +1177,26 @@ export default function EditEvent() {
                     className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${requireApproval ? 'bg-white' : 'bg-white/10'}`}
                   >
                     <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${requireApproval ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'}`} />
+                  </button>
+                </div>
+
+                {/* Draft Status */}
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <div>
+                      <span className="text-[14px] text-white/70">Draft</span>
+                      <p className="text-[12px] text-white/40">Event is not visible to the public</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDraft(!isDraft)}
+                    className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-200 ${isDraft ? 'bg-amber-500' : 'bg-white/10'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${isDraft ? 'translate-x-4 bg-white' : 'translate-x-0 bg-white'}`} />
                   </button>
                 </div>
 

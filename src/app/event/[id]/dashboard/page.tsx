@@ -95,6 +95,7 @@ export default function DashboardPage() {
           whiteLabelThemeId: eventData.white_label_theme_id || null,
           descriptionRtl: eventData.description_rtl || false,
           isDemo: eventData.is_demo || false,
+          isDraft: eventData.is_draft || false,
           language: eventData.language || 'en',
         };
         setEvent(publicEvent);

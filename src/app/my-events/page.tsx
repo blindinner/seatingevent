@@ -71,6 +71,7 @@ interface UserEvent {
   currency: string;
   theme_color: string;
   created_at: string;
+  is_draft?: boolean;
   // Stats
   total_bookings?: number;
   total_revenue?: number;
@@ -88,6 +89,41 @@ export default function MyEventsPage() {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null);
+  const [duplicatingEventId, setDuplicatingEventId] = useState<string | null>(null);
+
+  // Duplicate event
+  const handleDuplicate = async (e: React.MouseEvent, event: UserEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setDuplicatingEventId(event.id);
+    try {
+      // Get access token for auth
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const res = await fetch(`/api/events/${event.id}/duplicate`, {
+        method: 'POST',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`,
+        } : {},
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to duplicate event');
+      }
+
+      const data = await res.json();
+
+      // Redirect to the new event's edit page
+      router.push(`/event/${data.event.id}/edit`);
+    } catch (err) {
+      console.error('Error duplicating event:', err);
+      setError(err instanceof Error ? err.message : 'Failed to duplicate event');
+      setDuplicatingEventId(null);
+    }
+  };
 
   // Copy event URL to clipboard
   const handleCopyLink = async (e: React.MouseEvent, event: UserEvent) => {
@@ -200,8 +236,15 @@ export default function MyEventsPage() {
 
     setIsDeleting(true);
     try {
+      // Get access token for auth
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
       const res = await fetch(`/api/events/${deleteModal.event.id}`, {
         method: 'DELETE',
+        headers: session?.access_token ? {
+          'Authorization': `Bearer ${session.access_token}`,
+        } : {},
       });
 
       if (!res.ok) {
@@ -328,7 +371,11 @@ export default function MyEventsPage() {
                         )}
                         {/* Status Badge */}
                         <div className="absolute top-2 left-2">
-                          {past ? (
+                          {event.is_draft ? (
+                            <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/20 backdrop-blur-sm text-amber-400 rounded-full">
+                              Draft
+                            </span>
+                          ) : past ? (
                             <span className="px-2 py-0.5 text-[10px] font-medium bg-white/10 backdrop-blur-sm text-white/70 rounded-full">
                               Past
                             </span>
@@ -414,6 +461,15 @@ export default function MyEventsPage() {
                           Dashboard
                         </Link>
                         <Link
+                          href={`/event/${event.id}/edit`}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                          Edit
+                        </Link>
+                        <Link
                           href={`/event/${event.short_id || event.id}`}
                           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
                         >
@@ -440,6 +496,25 @@ export default function MyEventsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                               </svg>
                               Copy Link
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => handleDuplicate(e, event)}
+                          disabled={duplicatingEventId === event.id}
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {duplicatingEventId === event.id ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Duplicating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                              </svg>
+                              Duplicate
                             </>
                           )}
                         </button>

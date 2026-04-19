@@ -115,6 +115,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
   // Live ticket availability for GA events
   const [ticketTiers, setTicketTiers] = useState(event.ticketTiers || []);
 
+  // Related events from the same host
+  const [relatedEvents, setRelatedEvents] = useState<any[]>([]);
+
   // Use ref to access current selectedSeats in async callback without triggering re-renders
   const selectedSeatsRef = useRef(selectedSeats);
   selectedSeatsRef.current = selectedSeats;
@@ -218,6 +221,25 @@ export function EventClient({ event, mapData }: EventClientProps) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [event.id, fetchSeatStatus, fetchTicketAvailability]);
+
+  // Fetch related events from the same host (only for white-label themed events)
+  useEffect(() => {
+    // Only show related events for white-label branded pages
+    if (!event.whiteLabelThemeId) return;
+
+    async function fetchRelatedEvents() {
+      try {
+        const res = await fetch(`/api/events/${event.id}/related`);
+        if (res.ok) {
+          const data = await res.json();
+          setRelatedEvents(data.events || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch related events:', error);
+      }
+    }
+    fetchRelatedEvents();
+  }, [event.id, event.whiteLabelThemeId]);
 
   // Parse date for display
   const parseDateInfo = (dateStr: string) => {
@@ -515,6 +537,57 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   seatStatus={liveSeatStatus}
                   accentColor={accentColor || undefined}
                 />
+
+                {/* Selected Seats Panel */}
+                {selectedSeats.length > 0 && (
+                  <div className={`p-6 border-t ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
+                    {/* Selected seats list */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-[12px] uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
+                        Selected Seats ({selectedSeats.length})
+                      </span>
+                      <button
+                        onClick={clearSelection}
+                        className={`text-[12px] ${isDarkMode ? 'text-white/50 hover:text-white/80' : 'text-zinc-500 hover:text-zinc-700'} transition-colors`}
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-32 overflow-y-auto mb-4">
+                      {selectedSeats.map((seat) => (
+                        <div key={seat.seatId} className="flex items-center justify-between py-1">
+                          <div>
+                            <span className={`text-[14px] font-medium ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{seat.label}</span>
+                            <span className={`text-[12px] ml-2 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{seat.category}</span>
+                          </div>
+                          <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>
+                            {formatCurrency(seat.price, event.currency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Total and Get Tickets button */}
+                    <div className={`pt-4 border-t ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className={`text-[14px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>Total</span>
+                        <span className={`text-[20px] font-semibold ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                          {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleGetTickets}
+                        className="w-full py-4 text-[16px] font-semibold rounded-full transition-colors"
+                        style={{
+                          backgroundColor: accentColor || 'white',
+                          color: buttonTextColor,
+                        }}
+                      >
+                        {isFreeEvent ? t('register') : t('getTickets')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -564,6 +637,76 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                 </svg>
                 <p className={`text-[16px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>No seat map available</p>
+              </div>
+            )}
+
+            {/* More Events from this Host - only for white-label branded events */}
+            {event.whiteLabelThemeId && relatedEvents.length > 0 && (
+              <div className="mt-8">
+                <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-4 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
+                  More Events {event.hostedBy ? `from ${event.hostedBy}` : 'from this Host'}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {relatedEvents.slice(0, 3).map((relatedEvent) => {
+                    const eventUrl = relatedEvent.slug && event.whiteLabelTheme
+                      ? `/${event.whiteLabelTheme.slug}/${relatedEvent.slug}`
+                      : `/event/${relatedEvent.shortId || relatedEvent.id}`;
+
+                    const eventDate = new Date(relatedEvent.startDate);
+                    const dateStr = eventDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric'
+                    });
+
+                    return (
+                      <a
+                        key={relatedEvent.id}
+                        href={eventUrl}
+                        className={`group block rounded-xl overflow-hidden transition-all ${
+                          isDarkMode
+                            ? 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06]'
+                            : 'bg-black/[0.02] hover:bg-black/[0.04] border border-black/[0.06]'
+                        }`}
+                      >
+                        {/* Cover Image */}
+                        <div className="aspect-[16/9] relative overflow-hidden">
+                          {relatedEvent.coverImageUrl ? (
+                            <img
+                              src={relatedEvent.coverImageUrl}
+                              alt={relatedEvent.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div
+                              className="w-full h-full flex items-center justify-center"
+                              style={{ backgroundColor: relatedEvent.themeColor || themeColor }}
+                            >
+                              <svg className={`w-8 h-8 ${isDarkMode ? 'text-white/20' : 'text-black/20'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                          {/* Date badge */}
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-[11px] font-medium text-white">
+                            {dateStr}
+                          </div>
+                        </div>
+
+                        {/* Event Info */}
+                        <div className="p-3">
+                          <h4 className={`text-[14px] font-medium line-clamp-1 ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
+                            {relatedEvent.name}
+                          </h4>
+                          {relatedEvent.location && (
+                            <p className={`text-[12px] mt-1 line-clamp-1 ${isDarkMode ? 'text-white/50' : 'text-zinc-500'}`}>
+                              {relatedEvent.location.split(',')[0]}
+                            </p>
+                          )}
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

@@ -47,6 +47,7 @@ export async function PATCH(
 
     // Build update object with only allowed fields
     const allowedFields = [
+      'slug',
       'nav_logo_url',
       'logo_destination_url',
       'email_logo_url',
@@ -59,6 +60,8 @@ export async function PATCH(
 
     const updates: Record<string, any> = {};
 
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.slug !== undefined) updates.slug = body.slug;
     if (body.navLogoUrl !== undefined) updates.nav_logo_url = body.navLogoUrl;
     if (body.logoDestinationUrl !== undefined) updates.logo_destination_url = body.logoDestinationUrl;
     if (body.emailLogoUrl !== undefined) updates.email_logo_url = body.emailLogoUrl;

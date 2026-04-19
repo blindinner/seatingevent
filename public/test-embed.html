@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embed Customization Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: white;
+      min-height: 100vh;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 100vh;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 50vh;
+        overflow-y: auto;
+        z-index: 100;
+      }
+    }
+
+    .sidebar {
+      background: #0d0d0d;
+      border-right: 1px solid #333;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .sidebar h1 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar p {
+      color: #666;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #333;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      margin-bottom: 0.75rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 0.25rem;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: white;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 36px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      cursor: pointer;
+      margin-bottom: 0.75rem;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .color-row input[type="color"] {
+      width: 40px;
+      flex-shrink: 0;
+    }
+
+    .color-row input[type="text"] {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+
+    .checkbox-row label {
+      margin-bottom: 0;
+      font-size: 0.875rem;
+      color: #ccc;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #f59e0b;
+      color: black;
+    }
+
+    .btn-primary:hover {
+      background: #d97706;
+    }
+
+    .btn-secondary {
+      background: #333;
+      color: white;
+      margin-top: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+      background: #444;
+    }
+
+    .preview-area {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #252525;
+    }
+
+    .preview-container {
+      width: 100%;
+      max-width: 480px;
+      background: #1a1a1a;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .preview-container iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+
+    .url-display {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #1a1a1a;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #10b981;
+      word-break: break-all;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .embed-type-tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: #1a1a1a;
+      padding: 0.25rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .embed-type-tabs button {
+      flex: 1;
+      padding: 0.5rem;
+      background: transparent;
+      border: none;
+      color: #666;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .embed-type-tabs button.active {
+      background: #333;
+      color: white;
+    }
+
+    .size-selector {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .size-selector button {
+      flex: 1;
+      padding: 0.5rem;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #888;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    .size-selector button.active {
+      background: #333;
+      color: white;
+      border-color: #444;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .preset-btn {
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #ccc;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .preset-btn:hover {
+      border-color: #444;
+      background: #252525;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="sidebar">
+      <h1>Embed Customizer</h1>
+      <p>Customize how your ticket widget looks</p>
+
+      <!-- Event Selection -->
+      <div class="section">
+        <div class="section-title">Event Source</div>
+
+        <div class="embed-type-tabs">
+          <button id="tab-direct" class="active" onclick="setEmbedType('direct')">Event ID</button>
+          <button id="tab-match" onclick="setEmbedType('match')">External ID</button>
+        </div>
+
+        <div id="direct-controls">
+          <label>Event ID</label>
+          <input type="text" id="event-id" placeholder="UUID or short ID">
+        </div>
+
+        <div id="match-controls" style="display: none;">
+          <label>Venue Slug</label>
+          <input type="text" id="venue-slug" placeholder="e.g., jaffacinema">
+
+          <label>External ID</label>
+          <input type="text" id="external-id" placeholder="e.g., 7921">
+        </div>
+      </div>
+
+      <!-- Color Presets -->
+      <div class="section">
+        <div class="section-title">Quick Presets</div>
+        <div class="preset-buttons">
+          <button class="preset-btn" onclick="applyPreset('light')">Light</button>
+          <button class="preset-btn" onclick="applyPreset('dark')">Dark</button>
+          <button class="preset-btn" onclick="applyPreset('brand')">Brand</button>
+          <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="section">
+        <div class="section-title">Colors</div>
+
+        <label>Background</label>
+        <div class="color-row">
+          <input type="color" id="bg-color-picker" value="#ffffff" onchange="syncColor('bg')">
+          <input type="text" id="bg-color" placeholder="#ffffff" oninput="syncColorPicker('bg')">
+        </div>
+
+        <label>Primary (Buttons)</label>
+        <div class="color-row">
+          <input type="color" id="primary-color-picker" value="#10b981" onchange="syncColor('primary')">
+          <input type="text" id="primary-color" placeholder="#10b981" oninput="syncColorPicker('primary')">
+        </div>
+
+        <label>Text Color (optional)</label>
+        <div class="color-row">
+          <input type="color" id="text-color-picker" value="#1a1a1a" onchange="syncColor('text')">
+          <input type="text" id="text-color" placeholder="auto" oninput="syncColorPicker('text')">
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div class="section">
+        <div class="section-title">Layout</div>
+
+        <label>Border Radius</label>
+        <select id="border-radius">
+          <option value="none">None (Square)</option>
+          <option value="sm">Small</option>
+          <option value="md">Medium</option>
+          <option value="lg" selected>Large</option>
+          <option value="xl">Extra Large</option>
+          <option value="full">Full (Pill)</option>
+        </select>
+
+        <label>Button Style</label>
+        <select id="button-style">
+          <option value="rounded" selected>Rounded</option>
+          <option value="pill">Pill</option>
+          <option value="square">Square</option>
+        </select>
+
+        <label>Padding</label>
+        <select id="padding">
+          <option value="sm">Compact</option>
+          <option value="md" selected>Normal</option>
+          <option value="lg">Spacious</option>
+        </select>
+
+        <label>Language</label>
+        <select id="lang">
+          <option value="en">English</option>
+          <option value="he">Hebrew (RTL)</option>
+        </select>
+      </div>
+
+      <!-- Options -->
+      <div class="section">
+        <div class="section-title">Display Options</div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="compact">
+          <label for="compact">Compact mode</label>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="hide-header">
+          <label for="hide-header">Hide event header</label>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="hide-powered-by">
+          <label for="hide-powered-by">Hide "Powered by"</label>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="section">
+        <button class="btn btn-primary" onclick="loadEmbed()">Update Preview</button>
+        <button class="btn btn-secondary" onclick="copyEmbedCode()">Copy Embed Code</button>
+      </div>
+    </div>
+
+    <div class="preview-area">
+      <div class="preview-container" id="preview-container">
+        <iframe id="ticket-embed" src="about:blank"></iframe>
+      </div>
+      <div class="url-display" id="url-display">
+        Configure and click "Update Preview" to see your embed
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let embedType = 'direct';
+
+    function setEmbedType(type) {
+      embedType = type;
+      document.getElementById('tab-direct').classList.toggle('active', type === 'direct');
+      document.getElementById('tab-match').classList.toggle('active', type === 'match');
+      document.getElementById('direct-controls').style.display = type === 'direct' ? 'block' : 'none';
+      document.getElementById('match-controls').style.display = type === 'match' ? 'block' : 'none';
+    }
+
+    function syncColor(type) {
+      const picker = document.getElementById(type + '-color-picker');
+      const input = document.getElementById(type + '-color');
+      input.value = picker.value;
+    }
+
+    function syncColorPicker(type) {
+      const picker = document.getElementById(type + '-color-picker');
+      const input = document.getElementById(type + '-color');
+      if (input.value.match(/^#[0-9a-fA-F]{6}$/)) {
+        picker.value = input.value;
+      }
+    }
+
+    function applyPreset(preset) {
+      const presets = {
+        light: {
+          bgColor: '#ffffff',
+          primaryColor: '#1a1a1a',
+          textColor: '',
+          borderRadius: 'lg',
+          buttonStyle: 'rounded',
+          compact: false,
+          hideHeader: false,
+        },
+        dark: {
+          bgColor: '#0a0a0a',
+          primaryColor: '#ffffff',
+          textColor: '',
+          borderRadius: 'lg',
+          buttonStyle: 'rounded',
+          compact: false,
+          hideHeader: false,
+        },
+        brand: {
+          bgColor: '#0a0a0a',
+          primaryColor: '#f59e0b',
+          textColor: '',
+          borderRadius: 'xl',
+          buttonStyle: 'pill',
+          compact: false,
+          hideHeader: false,
+        },
+        minimal: {
+          bgColor: '#ffffff',
+          primaryColor: '#000000',
+          textColor: '',
+          borderRadius: 'none',
+          buttonStyle: 'square',
+          compact: true,
+          hideHeader: true,
+        },
+      };
+
+      const p = presets[preset];
+      if (!p) return;
+
+      document.getElementById('bg-color').value = p.bgColor;
+      document.getElementById('bg-color-picker').value = p.bgColor;
+      document.getElementById('primary-color').value = p.primaryColor;
+      document.getElementById('primary-color-picker').value = p.primaryColor;
+      document.getElementById('text-color').value = p.textColor;
+      document.getElementById('border-radius').value = p.borderRadius;
+      document.getElementById('button-style').value = p.buttonStyle;
+      document.getElementById('compact').checked = p.compact;
+      document.getElementById('hide-header').checked = p.hideHeader;
+
+      loadEmbed();
+    }
+
+    function buildEmbedUrl() {
+      let url;
+
+      if (embedType === 'direct') {
+        const eventId = document.getElementById('event-id').value.trim();
+        if (!eventId) return null;
+        url = `/embed/${eventId}`;
+      } else {
+        const venueSlug = document.getElementById('venue-slug').value.trim();
+        const externalId = document.getElementById('external-id').value.trim();
+        if (!venueSlug || !externalId) return null;
+        url = `/embed/match/${venueSlug}/${externalId}`;
+      }
+
+      const params = new URLSearchParams();
+
+      // Colors
+      const bgColor = document.getElementById('bg-color').value.trim();
+      const primaryColor = document.getElementById('primary-color').value.trim();
+      const textColor = document.getElementById('text-color').value.trim();
+
+      if (bgColor) params.set('bgColor', bgColor.replace('#', ''));
+      if (primaryColor) params.set('primaryColor', primaryColor.replace('#', ''));
+      if (textColor) params.set('textColor', textColor.replace('#', ''));
+
+      // Layout
+      const borderRadius = document.getElementById('border-radius').value;
+      const buttonStyle = document.getElementById('button-style').value;
+      const padding = document.getElementById('padding').value;
+      const lang = document.getElementById('lang').value;
+
+      if (borderRadius !== 'lg') params.set('borderRadius', borderRadius);
+      if (buttonStyle !== 'rounded') params.set('buttonStyle', buttonStyle);
+      if (padding !== 'md') params.set('padding', padding);
+      if (lang !== 'en') params.set('lang', lang);
+
+      // Options
+      if (document.getElementById('compact').checked) params.set('compact', 'true');
+      if (document.getElementById('hide-header').checked) params.set('hideHeader', 'true');
+      if (document.getElementById('hide-powered-by').checked) params.set('hidePoweredBy', 'true');
+
+      if (params.toString()) {
+        url += '?' + params.toString();
+      }
+
+      return url;
+    }
+
+    function loadEmbed() {
+      const url = buildEmbedUrl();
+      if (!url) {
+        alert('Please enter an Event ID');
+        return;
+      }
+
+      document.getElementById('ticket-embed').src = url;
+      document.getElementById('url-display').textContent = url;
+
+      // Adjust iframe height for compact mode
+      const iframe = document.getElementById('ticket-embed');
+      const isCompact = document.getElementById('compact').checked;
+      iframe.style.height = isCompact ? '400px' : '600px';
+    }
+
+    function copyEmbedCode() {
+      const url = buildEmbedUrl();
+      if (!url) {
+        alert('Please enter an Event ID first');
+        return;
+      }
+
+      const fullUrl = window.location.origin + url;
+      const embedCode = `<iframe src="${fullUrl}" width="100%" height="600" frameborder="0" style="border-radius: 12px;"></iframe>`;
+
+      navigator.clipboard.writeText(embedCode).then(() => {
+        alert('Embed code copied to clipboard!');
+      });
+    }
+
+    // Auto-load if event ID is in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('eventId')) {
+      document.getElementById('event-id').value = urlParams.get('eventId');
+      loadEmbed();
+    }
+  </script>
+</body>
+</html>

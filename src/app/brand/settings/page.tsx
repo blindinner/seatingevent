@@ -18,6 +18,8 @@ export default function BrandSettingsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
   const [navLogoUrl, setNavLogoUrl] = useState('');
   const [logoDestinationUrl, setLogoDestinationUrl] = useState('');
   const [emailLogoUrl, setEmailLogoUrl] = useState('');
@@ -71,6 +73,8 @@ export default function BrandSettingsPage() {
   const selectTheme = (theme: WhiteLabelTheme) => {
     setIsInitialized(false); // Prevent auto-save during theme switch
     setSelectedTheme(theme);
+    setName(theme.name || '');
+    setSlug(theme.slug || '');
     setNavLogoUrl(theme.navLogoUrl || '');
     setLogoDestinationUrl(theme.logoDestinationUrl || '');
     setEmailLogoUrl(theme.emailLogoUrl || '');
@@ -103,6 +107,8 @@ export default function BrandSettingsPage() {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
+          name: name || null,
+          slug: slug || null,
           navLogoUrl,
           logoDestinationUrl: logoDestinationUrl || null,
           emailLogoUrl: emailLogoUrl || null,
@@ -130,7 +136,7 @@ export default function BrandSettingsPage() {
     } catch {
       setAutoSaveStatus('error');
     }
-  }, [selectedTheme, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks]);
+  }, [selectedTheme, name, slug, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks]);
 
   // Auto-save effect with debounce
   useEffect(() => {
@@ -151,7 +157,7 @@ export default function BrandSettingsPage() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [isInitialized, selectedTheme, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks, performAutoSave]);
+  }, [isInitialized, selectedTheme, name, slug, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks, performAutoSave]);
 
   const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
     setSocialLinks(prev => ({
@@ -480,6 +486,36 @@ export default function BrandSettingsPage() {
             <h2 className="text-lg font-semibold mb-6">Branding</h2>
 
             <div className="space-y-5">
+              {/* Brand Name */}
+              <div>
+                <label className="block text-[13px] text-white/60 mb-2">Brand Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your Brand Name"
+                  className="w-full h-12 px-4 rounded-xl bg-white/[0.08] border border-transparent text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                />
+              </div>
+
+              {/* Brand URL Slug */}
+              <div>
+                <label className="block text-[13px] text-white/60 mb-2">Brand URL Slug</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-white/40 text-[14px]">{typeof window !== 'undefined' ? window.location.origin : ''}/</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="your-brand"
+                    className="flex-1 h-12 px-4 rounded-xl bg-white/[0.08] border border-transparent text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                </div>
+                <p className="text-[12px] text-white/40 mt-1">
+                  Your events page will be available at this URL. Use lowercase letters, numbers, and hyphens only.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-[13px] text-white/60 mb-2">Brand Color</label>
                 <div className="flex gap-3">

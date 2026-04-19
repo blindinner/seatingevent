@@ -38,6 +38,7 @@ export interface CreateEventInput {
   requireApproval: boolean;
   sendQrCode?: boolean; // Whether to include QR code in confirmation emails (free events only)
   isDemo?: boolean; // Demo events show full checkout flow but don't process payments
+  isDraft?: boolean; // Draft events are not visible to the public
   language?: EventLanguage; // Event page language (en = English, he = Hebrew with RTL)
   mapId?: string;
   userId: string;
@@ -72,6 +73,7 @@ export interface PublicEvent {
   requireApproval: boolean;
   sendQrCode: boolean; // Whether to include QR code in confirmation emails (free events only)
   isDemo: boolean; // Demo events show full checkout flow but don't process payments
+  isDraft: boolean; // Draft events are not visible to the public
   language: EventLanguage; // Event page language (en = English, he = Hebrew with RTL)
   mapId: string | null;
   userId: string;
