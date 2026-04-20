@@ -9,6 +9,7 @@ import type {
 } from '@/types/map';
 import { useSeatSelectionStore } from '@/stores/seatSelectionStore';
 import { formatCurrency } from '@/lib/currency';
+import { useTranslation, type Language } from '@/lib/translations';
 
 // Helper to darken/lighten a hex color for stroke
 function adjustColorBrightness(hex: string, percent: number): string {
@@ -27,6 +28,7 @@ interface SeatMapViewerProps {
   height?: string; // Custom height class, e.g., "h-[300px]"
   seatStatus?: Record<string, string>; // seatId -> status (e.g., "sold:orderId")
   accentColor?: string; // Color for selected seats (defaults to green)
+  language?: Language; // Event language for translations
 }
 
 interface ViewState {
@@ -35,9 +37,10 @@ interface ViewState {
   panY: number;
 }
 
-export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height, seatStatus = {}, accentColor }: SeatMapViewerProps) {
+export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height, seatStatus = {}, accentColor, language = 'en' }: SeatMapViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { t } = useTranslation(language);
   const recentTouchRef = useRef<number>(0); // Timestamp of recent touch to prevent double-firing
 
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, panX: 0, panY: 0 });
@@ -310,6 +313,9 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
       handleSeatClick(seat, parentCategory);
     };
 
+    // Selection indicator color - always use a clear green for selected seats
+    const selectionColor = '#22C55E';
+
     return (
       <g
         key={seat.id}
@@ -320,14 +326,26 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         onMouseLeave={handleSeatLeave}
         style={{ cursor: isUnavailable ? 'not-allowed' : 'pointer' }}
       >
+        {/* Selection ring - shows behind the seat when selected */}
+        {isSelected && (
+          <circle
+            cx={x}
+            cy={y}
+            r={radius + 4}
+            fill="none"
+            stroke={selectionColor}
+            strokeWidth={3}
+            opacity={1}
+          />
+        )}
         {/* Seat circle */}
         <circle
           cx={x}
           cy={y}
           r={radius}
-          fill={fillColor}
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
+          fill={isSelected ? selectionColor : fillColor}
+          stroke={isSelected ? '#16A34A' : strokeColor}
+          strokeWidth={isSelected ? 2 : strokeWidth}
           opacity={opacity}
         />
         {/* Seat number label */}
@@ -921,13 +939,11 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         ))}
         <div className="flex items-center gap-1.5">
           <div className={compact ? 'w-2 h-2 rounded-full bg-green-500' : 'w-3 h-3 rounded-full bg-green-500'} />
-          <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>Selected</span>
+          <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>{t('selected')}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className={`${compact ? 'w-2 h-2' : 'w-3 h-3'} rounded-full bg-[#1f1f1f] border border-[#444444] relative`}>
-            <div className="absolute inset-0 flex items-center justify-center text-[#666] text-[6px] font-bold">×</div>
-          </div>
-          <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>Sold</span>
+          <div className={`${compact ? 'w-2 h-2' : 'w-3 h-3'} rounded-full bg-transparent border border-white/20`} />
+          <span className={compact ? 'text-[11px] text-white/50' : 'text-[12px] text-white/60'}>{t('sold')}</span>
         </div>
       </div>
 

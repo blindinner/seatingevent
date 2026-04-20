@@ -542,6 +542,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                   height="h-[420px]"
                   seatStatus={liveSeatStatus}
                   accentColor={accentColor || undefined}
+                  language={event.language}
                 />
 
                 {/* Selected Seats Panel */}
