@@ -47,6 +47,23 @@ export const translations = {
     selected: 'Selected',
     available: 'Available',
 
+    // Seat selection
+    selectYourSeats: 'Select Your Seats',
+    clickToSelect: 'Click on a seat to select it',
+    selectedSeats: 'Selected Seats',
+    selectedTickets: 'Selected Tickets',
+    clearAll: 'Clear all',
+    clear: 'Clear',
+    selectSeatsToContinue: 'Select seats to continue',
+    selectTicketsToContinue: 'Select tickets to continue',
+    clickOnAvailableSeats: 'Click on available seats in the map to select them',
+    chooseTicketType: 'Choose your ticket type and quantity above',
+    row: 'Row',
+    sold: 'Sold',
+    selectYourTickets: 'Select your tickets',
+    ticketsSelected: 'tickets selected',
+    ticketSelected: 'ticket selected',
+
     // Demo
     demoEvent: 'Demo Event',
     thisIsDemo: 'This is a Demo Event',
@@ -196,6 +213,23 @@ export const translations = {
     total: 'סה"כ',
     selected: 'נבחרו',
     available: 'זמין',
+
+    // Seat selection
+    selectYourSeats: 'בחרו את המושבים שלכם',
+    clickToSelect: 'לחצו על מושב כדי לבחור אותו',
+    selectedSeats: 'מושבים נבחרים',
+    selectedTickets: 'כרטיסים נבחרים',
+    clearAll: 'נקה הכל',
+    clear: 'נקה',
+    selectSeatsToContinue: 'בחרו מושבים להמשך',
+    selectTicketsToContinue: 'בחרו כרטיסים להמשך',
+    clickOnAvailableSeats: 'לחצו על מושבים פנויים במפה כדי לבחור אותם',
+    chooseTicketType: 'בחרו את סוג הכרטיס והכמות למעלה',
+    row: 'שורה',
+    sold: 'נמכר',
+    selectYourTickets: 'בחרו את הכרטיסים שלכם',
+    ticketsSelected: 'כרטיסים נבחרו',
+    ticketSelected: 'כרטיס נבחר',
 
     // Demo
     demoEvent: 'אירוע לדוגמה',

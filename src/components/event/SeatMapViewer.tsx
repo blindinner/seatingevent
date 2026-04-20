@@ -40,8 +40,6 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
   const svgRef = useRef<SVGSVGElement>(null);
 
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, panX: 0, panY: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredSeat, setHoveredSeat] = useState<{ seat: SeatElement; category: CategoryConfig | undefined } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -221,58 +219,15 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     });
   }, [bounds]);
 
-  // Handle pan
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || e.button === 2 || e.ctrlKey || e.metaKey) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - viewState.panX, y: e.clientY - viewState.panY });
-      e.preventDefault();
-    }
-  }, [viewState.panX, viewState.panY]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isPanning) {
-      setViewState(prev => ({
-        ...prev,
-        panX: e.clientX - panStart.x,
-        panY: e.clientY - panStart.y,
-      }));
-    }
-  }, [isPanning, panStart]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
-  }, []);
-
-  // Touch event handlers for mobile panning
+  // Touch event handlers for mobile (only for seat selection, no panning)
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       const touch = e.touches[0];
       setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-      setPanStart({ x: touch.clientX - viewState.panX, y: touch.clientY - viewState.panY });
     }
-  }, [viewState.panX, viewState.panY]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 1 && touchStartPos) {
-      const touch = e.touches[0];
-      const dx = Math.abs(touch.clientX - touchStartPos.x);
-      const dy = Math.abs(touch.clientY - touchStartPos.y);
-
-      // Only start panning if moved more than 10px (to allow taps for seat selection)
-      if (dx > 10 || dy > 10) {
-        setIsPanning(true);
-        setViewState(prev => ({
-          ...prev,
-          panX: touch.clientX - panStart.x,
-          panY: touch.clientY - panStart.y,
-        }));
-      }
-    }
-  }, [touchStartPos, panStart]);
+  }, []);
 
   const handleTouchEnd = useCallback(() => {
-    setIsPanning(false);
     setTouchStartPos(null);
   }, []);
 
@@ -350,10 +305,19 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
       textOpacity = 1;
     }
 
+    // Handle touch tap on seat (for mobile)
+    const handleSeatTouchEnd = (e: React.TouchEvent) => {
+      if (!isUnavailable) {
+        e.stopPropagation();
+        handleSeatClick(seat, parentCategory);
+      }
+    };
+
     return (
       <g
         key={seat.id}
-        onClick={() => !isPanning && handleSeatClick(seat, parentCategory)}
+        onClick={() => handleSeatClick(seat, parentCategory)}
+        onTouchEnd={handleSeatTouchEnd}
         onMouseEnter={(e) => handleSeatHover(e, seat, parentCategory)}
         onMouseMove={handleSeatMouseMove}
         onMouseLeave={handleSeatLeave}
@@ -889,12 +853,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         ref={containerRef}
         className={`relative w-full ${containerHeight} overflow-hidden`}
         style={{ backgroundColor: containerBg }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
@@ -902,7 +861,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
           ref={svgRef}
           width="100%"
           height="100%"
-          style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+          style={{ cursor: 'default' }}
         >
           <g transform={`translate(${viewState.panX}, ${viewState.panY}) scale(${viewState.zoom})`}>
             {/* Background - uses theme color if provided */}

@@ -242,14 +242,15 @@ export function EventClient({ event, mapData }: EventClientProps) {
     fetchRelatedEvents();
   }, [event.id, event.whiteLabelThemeId]);
 
-  // Parse date for display
+  // Parse date for display - uses event language for locale
   const parseDateInfo = (dateStr: string) => {
     const date = new Date(dateStr);
+    const locale = event.language === 'he' ? 'he-IL' : 'en-US';
     return {
       day: date.getDate(),
-      month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-      weekday: date.toLocaleDateString('en-US', { weekday: 'long' }),
-      fullDate: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+      month: date.toLocaleDateString(locale, { month: 'short' }).toUpperCase(),
+      weekday: date.toLocaleDateString(locale, { weekday: 'long' }),
+      fullDate: date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' }),
     };
   };
 
@@ -530,8 +531,8 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {event.eventType === 'seated' && mapData && (
               <div className={`rounded-2xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className={`px-6 py-5 border-b ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
-                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Select Your Seats</h3>
-                  <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>Click on a seat to select it</p>
+                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('selectYourSeats')}</h3>
+                  <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>{t('clickToSelect')}</p>
                 </div>
                 <SeatMapViewer
                   mapData={mapData}
@@ -549,13 +550,13 @@ export function EventClient({ event, mapData }: EventClientProps) {
                     {/* Selected seats list */}
                     <div className="flex items-center justify-between mb-3">
                       <span className={`text-[12px] uppercase tracking-wider ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
-                        Selected Seats ({selectedSeats.length})
+                        {t('selectedSeats')} ({selectedSeats.length})
                       </span>
                       <button
                         onClick={clearSelection}
                         className={`text-[12px] ${isDarkMode ? 'text-white/50 hover:text-white/80' : 'text-zinc-500 hover:text-zinc-700'} transition-colors`}
                       >
-                        Clear all
+                        {t('clearAll')}
                       </button>
                     </div>
                     <div className="space-y-2 max-h-32 overflow-y-auto mb-4">
@@ -563,7 +564,7 @@ export function EventClient({ event, mapData }: EventClientProps) {
                         <div key={seat.seatId} className="flex items-center justify-between py-1">
                           <div>
                             <span className={`text-[14px] font-medium ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>{seat.label}</span>
-                            <span className={`text-[12px] ml-2 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{seat.category}</span>
+                            <span className={`text-[12px] ${isRtl ? 'mr-2' : 'ml-2'} ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{seat.category}</span>
                           </div>
                           <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>
                             {formatCurrency(seat.price, event.currency)}
@@ -575,9 +576,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
                     {/* Total and Get Tickets button */}
                     <div className={`pt-4 border-t ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
                       <div className="flex items-center justify-between mb-4">
-                        <span className={`text-[14px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>Total</span>
+                        <span className={`text-[14px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>{t('total')}</span>
                         <span className={`text-[20px] font-semibold ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                          {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
+                          {isFreeEvent ? t('free') : formatCurrency(totalPrice, event.currency)}
                         </span>
                       </div>
                       <button
@@ -600,8 +601,8 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {event.eventType === 'ga' && event.ticketTiers && (
               <div className={`rounded-2xl overflow-hidden backdrop-blur-sm border border-transparent ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
                 <div className={`px-6 py-5 border-b ${isDarkMode ? 'border-white/[0.03]' : 'border-black/[0.03]'}`}>
-                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>Tickets</h3>
-                  <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>Select your tickets</p>
+                  <h3 className={`text-[13px] uppercase tracking-wider font-medium mb-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('tickets')}</h3>
+                  <p className={`text-[15px] ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>{t('selectYourTickets')}</p>
                 </div>
                 <div className="p-6">
                   <TicketSelector tiers={ticketTiers} currency={event.currency} isDarkMode={isDarkMode} />
@@ -612,10 +613,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <p className={`text-[14px] ${isDarkMode ? 'text-white/60' : 'text-zinc-600'}`}>
-                            {getTotalTickets()} ticket{getTotalTickets() !== 1 ? 's' : ''} selected
+                            {getTotalTickets()} {getTotalTickets() !== 1 ? t('ticketsSelected') : t('ticketSelected')}
                           </p>
                           <p className={`text-[20px] font-semibold ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}>
-                            {isFreeEvent ? 'Free' : formatCurrency(totalPrice, event.currency)}
+                            {isFreeEvent ? t('free') : formatCurrency(totalPrice, event.currency)}
                           </p>
                         </div>
                       </div>
