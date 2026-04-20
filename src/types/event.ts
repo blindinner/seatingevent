@@ -44,6 +44,7 @@ export interface CreateEventInput {
   userId: string;
   whiteLabelThemeId?: string;
   slug?: string; // Custom URL slug for branded events (only with white-label theme)
+  externalId?: string; // External ID for embed matching (e.g., cinema's internal movie ID)
 }
 
 import type { WhiteLabelTheme } from './whiteLabel';
@@ -82,4 +83,5 @@ export interface PublicEvent {
   emailSettings?: EmailSettings;
   whiteLabelThemeId: string | null;
   whiteLabelTheme?: WhiteLabelTheme;
+  externalId: string | null; // External ID for embed matching (e.g., cinema's internal movie ID)
 }

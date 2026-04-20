@@ -1,5 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getPublicEvent } from '@/lib/supabase';
+
+// GET - Fetch event data (public, for embeds)
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { supabaseAdmin } = await import('@/lib/supabase-admin');
+
+    // Try to fetch event by ID or short_id
+    let event = await getPublicEvent(id);
+
+    // If not found by UUID, try short_id
+    if (!event) {
+      const { data: eventByShortId } = await supabaseAdmin.client
+        .from('events')
+        .select('id')
+        .eq('short_id', id)
+        .single();
+
+      if (eventByShortId) {
+        event = await getPublicEvent(eventByShortId.id);
+      }
+    }
+
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    // Fetch map data if seated event
+    let mapData = null;
+    if (event.mapId) {
+      const { data: mapRow } = await supabaseAdmin.client
+        .from('maps')
+        .select('data')
+        .eq('id', event.mapId)
+        .single();
+
+      if (mapRow) {
+        mapData = mapRow.data;
+      }
+    }
+
+    // Calculate ticket availability for GA events
+    let tiers = event.ticketTiers || [];
+    if (event.eventType === 'ga' && tiers.length > 0) {
+      // Get booking counts per tier
+      const { data: bookings } = await supabaseAdmin.client
+        .from('bookings')
+        .select('metadata')
+        .eq('event_id', event.id)
+        .eq('payment_status', 'completed');
+
+      const tierSales: Record<string, number> = {};
+      bookings?.forEach(booking => {
+        const ticketSelections = booking.metadata?.ticketSelections || [];
+        ticketSelections.forEach((sel: { tierId: string; quantity: number }) => {
+          tierSales[sel.tierId] = (tierSales[sel.tierId] || 0) + sel.quantity;
+        });
+      });
+
+      tiers = tiers.map(tier => ({
+        ...tier,
+        sold: tierSales[tier.id] || 0,
+        remaining: tier.quantity === -1 ? -1 : Math.max(0, tier.quantity - (tierSales[tier.id] || 0)),
+      }));
+    }
+
+    return NextResponse.json({
+      event,
+      mapData,
+      tiers,
+    });
+
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
 
 // Helper to get user from request (supports both Authorization header and cookies)
 async function getUserFromRequest(request: NextRequest) {

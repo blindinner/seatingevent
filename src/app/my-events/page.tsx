@@ -91,6 +91,23 @@ export default function MyEventsPage() {
   const [copiedEventId, setCopiedEventId] = useState<string | null>(null);
   const [duplicatingEventId, setDuplicatingEventId] = useState<string | null>(null);
 
+  // Copy event URL to clipboard
+  const handleCopyLink = async (e: React.MouseEvent, event: UserEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const eventSlug = event.short_id || event.id;
+    const url = `${window.location.origin}/event/${eventSlug}`;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedEventId(event.id);
+      setTimeout(() => setCopiedEventId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   // Duplicate event
   const handleDuplicate = async (e: React.MouseEvent, event: UserEvent) => {
     e.preventDefault();
@@ -122,23 +139,6 @@ export default function MyEventsPage() {
       console.error('Error duplicating event:', err);
       setError(err instanceof Error ? err.message : 'Failed to duplicate event');
       setDuplicatingEventId(null);
-    }
-  };
-
-  // Copy event URL to clipboard
-  const handleCopyLink = async (e: React.MouseEvent, event: UserEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const eventSlug = event.short_id || event.id;
-    const url = `${window.location.origin}/event/${eventSlug}`;
-
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedEventId(event.id);
-      setTimeout(() => setCopiedEventId(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
     }
   };
 

@@ -91,6 +91,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const ticketCount = tickets.reduce((sum, t) => sum + t.quantity, 0);
   const totalItemCount = seatIds.length + ticketCount;
 
+  // Convert amount to smallest currency unit (cents/agorot) - must be integer
+  const amountInSmallestUnit = Math.round(input.totalAmount * 100);
+
   const { data, error } = await supabaseAdmin.client
     .from('bookings')
     .insert({
@@ -101,7 +104,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       customer_phone: input.customerPhone,
       seat_ids: seatIds.length > 0 ? seatIds : [], // Empty array for GA events
       seat_count: totalItemCount,
-      amount_paid: input.totalAmount,
+      amount_paid: amountInSmallestUnit,
       currency: input.currency,
       payment_status: input.status,
       ticket_code: input.status === 'paid' ? generateTicketCode() : null,
@@ -259,6 +262,10 @@ export async function getCustomerOrders(email: string): Promise<Order[]> {
 
 // Map database row to Order type
 function mapDatabaseBooking(row: Record<string, unknown>): Order {
+  // Convert from smallest unit (cents/agorot) back to display amount
+  const amountPaidCents = row.amount_paid as number;
+  const displayAmount = amountPaidCents / 100;
+
   return {
     id: row.id as string,
     eventId: row.event_id as string,
@@ -267,7 +274,7 @@ function mapDatabaseBooking(row: Record<string, unknown>): Order {
     customerPhone: row.customer_phone as string | null,
     seatIds: (row.seat_ids as string[]) || [],
     seatCount: row.seat_count as number,
-    totalAmount: row.amount_paid as number,
+    totalAmount: displayAmount,
     currency: row.currency as string,
     status: mapPaymentStatus(row.payment_status as string),
     paymentOrderId: row.idempotency_key as string | null,

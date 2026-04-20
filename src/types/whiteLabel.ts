@@ -35,6 +35,16 @@ export interface SocialLinks {
   youtube?: string;
 }
 
+export interface EmbedSettings {
+  primaryColor?: string;
+  backgroundColor?: string;
+  borderRadius?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  buttonStyle?: 'rounded' | 'pill' | 'square';
+  compact?: boolean;
+  hideHeader?: boolean;
+  hidePoweredBy?: boolean;
+}
+
 export interface WhiteLabelTheme {
   id: string;
   name: string;
@@ -48,6 +58,7 @@ export interface WhiteLabelTheme {
   defaultHostedBy: string | null;
   defaultLocation: string | null;
   socialLinks: SocialLinks | null;
+  embedSettings: EmbedSettings | null;
   allowedEmails: string[];
   isActive: boolean;
   createdAt: string;

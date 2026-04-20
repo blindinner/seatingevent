@@ -1,4 +1,4 @@
-import type { WhiteLabelTheme, BackgroundConfig, SocialLinks } from '@/types/whiteLabel';
+import type { WhiteLabelTheme, BackgroundConfig, SocialLinks, EmbedSettings } from '@/types/whiteLabel';
 
 interface DatabaseWhiteLabelTheme {
   id: string;
@@ -13,6 +13,7 @@ interface DatabaseWhiteLabelTheme {
   default_hosted_by: string | null;
   default_location: string | null;
   social_links: SocialLinks | null;
+  embed_settings: EmbedSettings | null;
   allowed_emails: string[];
   is_active: boolean;
   created_at: string;
@@ -33,6 +34,7 @@ function transformTheme(dbTheme: DatabaseWhiteLabelTheme): WhiteLabelTheme {
     defaultHostedBy: dbTheme.default_hosted_by,
     defaultLocation: dbTheme.default_location,
     socialLinks: dbTheme.social_links,
+    embedSettings: dbTheme.embed_settings,
     allowedEmails: dbTheme.allowed_emails || [],
     isActive: dbTheme.is_active,
     createdAt: dbTheme.created_at,

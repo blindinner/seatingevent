@@ -35,6 +35,13 @@ interface SelectedTicket {
   price: number;
 }
 
+interface EmbedStyles {
+  primaryColor?: string;
+  backgroundColor?: string;
+  borderRadius?: string;
+  buttonBorderRadius?: string;
+}
+
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,12 +58,7 @@ interface CheckoutModalProps {
   error?: string | null;
   whiteLabelTheme?: WhiteLabelTheme | null;
   language?: EventLanguage;
-  embedStyles?: {
-    primaryColor?: string;
-    backgroundColor?: string;
-    borderRadius?: string;
-    buttonBorderRadius?: string;
-  };
+  embedStyles?: EmbedStyles;
 }
 
 export interface CustomerInfo {
@@ -97,10 +99,21 @@ export function CheckoutModal({
   error: externalError,
   whiteLabelTheme,
   language = 'en',
-  embedStyles: _embedStyles,
+  embedStyles,
 }: CheckoutModalProps) {
   const { t, isRtl, dir } = useTranslation(language);
   const isDarkMode = useMemo(() => !isLightColor(themeColor), [themeColor]);
+
+  // Embed styling - use embed colors if provided, otherwise fallback to theme
+  const accentColor = embedStyles?.primaryColor || (isDarkMode ? '#ffffff' : '#1a1a1a');
+  const bgColor = embedStyles?.backgroundColor || themeColor;
+  const borderRadius = embedStyles?.borderRadius || '0.75rem';
+  const buttonRadius = embedStyles?.buttonBorderRadius || borderRadius;
+  // Determine button text color based on accent color luminance
+  const buttonTextColor = isLightColor(accentColor) ? '#000000' : '#ffffff';
+  const buttonHoverBg = isLightColor(accentColor)
+    ? `${accentColor}e6` // slightly transparent for light colors
+    : `${accentColor}e6`;
   const isFreeEvent = totalPrice === 0;
   const isGAEvent = selectedTickets.length > 0;
   const totalItems = isGAEvent
@@ -393,8 +406,8 @@ export function CheckoutModal({
 
         {/* Modal */}
         <div
-          className="relative w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl"
-          style={{ backgroundColor: themeColor }}
+          className="relative w-full max-w-lg overflow-hidden shadow-2xl"
+          style={{ backgroundColor: bgColor, borderRadius: borderRadius }}
           dir={dir}
         >
           {/* Header */}
@@ -587,11 +600,12 @@ export function CheckoutModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full h-14 mt-8 text-[16px] font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                    isDarkMode
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                  }`}
+                  className="w-full h-14 mt-8 text-[16px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:opacity-90"
+                  style={{
+                    backgroundColor: accentColor,
+                    color: buttonTextColor,
+                    borderRadius: buttonRadius,
+                  }}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center gap-2">
@@ -638,11 +652,12 @@ export function CheckoutModal({
                   type="button"
                   onClick={handlePayClick}
                   disabled={isPaymentProcessing || !allpayLoaded}
-                  className={`w-full h-14 text-[16px] font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                    isDarkMode
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                  }`}
+                  className="w-full h-14 text-[16px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:opacity-90"
+                  style={{
+                    backgroundColor: accentColor,
+                    color: buttonTextColor,
+                    borderRadius: buttonRadius,
+                  }}
                 >
                   {isPaymentProcessing ? (
                     <span className="flex items-center justify-center gap-2">
@@ -891,11 +906,12 @@ export function CheckoutModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`w-full h-14 text-[16px] font-semibold rounded-full transition-colors ${
-                    isDarkMode
-                      ? 'bg-white text-black hover:bg-white/90'
-                      : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                  }`}
+                  className="w-full h-14 text-[16px] font-semibold transition-colors hover:opacity-90"
+                  style={{
+                    backgroundColor: accentColor,
+                    color: buttonTextColor,
+                    borderRadius: buttonRadius,
+                  }}
                 >
                   {t('done')}
                 </button>

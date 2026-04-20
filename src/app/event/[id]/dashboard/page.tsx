@@ -97,6 +97,7 @@ export default function DashboardPage() {
           isDemo: eventData.is_demo || false,
           isDraft: eventData.is_draft || false,
           language: eventData.language || 'en',
+          externalId: eventData.external_id || null,
         };
         setEvent(publicEvent);
 

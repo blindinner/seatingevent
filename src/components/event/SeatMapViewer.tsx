@@ -355,10 +355,82 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     );
   };
 
-  // Render a row
+  // Render a row with row label
   const renderRow = (row: RowElement, offsetX = 0, offsetY = 0) => {
+    // Calculate label position based on first and last seat
+    const getFirstSeatPos = () => {
+      if (row.seats && row.seats.length > 0) {
+        return { x: row.seats[0].x, y: row.seats[0].y };
+      }
+      return { x: 0, y: 0 };
+    };
+
+    const getLastSeatPos = () => {
+      if (row.seats && row.seats.length > 0) {
+        const lastSeat = row.seats[row.seats.length - 1];
+        return { x: lastSeat.x, y: lastSeat.y };
+      }
+      return { x: (row.seatCount - 1) * (row.seatSpacing || 30), y: 0 };
+    };
+
+    const firstSeat = getFirstSeatPos();
+    const lastSeat = getLastSeatPos();
+
+    // Calculate direction vector for label offset
+    const dx = lastSeat.x - firstSeat.x;
+    const dy = lastSeat.y - firstSeat.y;
+    const length = Math.sqrt(dx * dx + dy * dy) || 1;
+    const dirX = dx / length;
+    const dirY = dy / length;
+
+    // Label offset from seats
+    const seatRadius = row.seatRadius || 12;
+    const labelOffset = seatRadius + 15;
+
+    // Get label position setting (default to 'left' for beginning)
+    const labelPosition = row.rowLabelPosition ?? 'left';
+    const showStartLabel = row.rowLabelEnabled !== false && (labelPosition === 'left' || labelPosition === 'both');
+    const showEndLabel = row.rowLabelEnabled !== false && labelPosition === 'both';
+
+    const labelColor = mapData.labelColor || '#FFFFFF';
+
     return (
-      <g key={row.id} transform={`translate(${row.x + offsetX}, ${row.y + offsetY})`}>
+      <g key={row.id} transform={`translate(${row.x + offsetX}, ${row.y + offsetY})${row.rotation ? ` rotate(${row.rotation})` : ''}`}>
+        {/* Row label at beginning */}
+        {showStartLabel && row.label && (
+          <text
+            x={firstSeat.x - dirX * labelOffset}
+            y={firstSeat.y - dirY * labelOffset}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={labelColor}
+            opacity={0.7}
+            fontSize={12}
+            fontWeight="500"
+            pointerEvents="none"
+          >
+            {row.label}
+          </text>
+        )}
+
+        {/* Row label at end */}
+        {showEndLabel && row.label && (
+          <text
+            x={lastSeat.x + dirX * labelOffset}
+            y={lastSeat.y + dirY * labelOffset}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={labelColor}
+            opacity={0.7}
+            fontSize={12}
+            fontWeight="500"
+            pointerEvents="none"
+          >
+            {row.label}
+          </text>
+        )}
+
+        {/* Seats */}
         {row.seats?.map(seat => renderSeat(seat, 0, 0, row.category))}
       </g>
     );

@@ -70,6 +70,7 @@ export async function PATCH(
     if (body.defaultHostedBy !== undefined) updates.default_hosted_by = body.defaultHostedBy;
     if (body.defaultLocation !== undefined) updates.default_location = body.defaultLocation;
     if (body.socialLinks !== undefined) updates.social_links = body.socialLinks;
+    if (body.embedSettings !== undefined) updates.embed_settings = body.embedSettings;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

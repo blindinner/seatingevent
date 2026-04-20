@@ -148,6 +148,7 @@ export interface ExtendedDatabaseEvent {
   seat_status: Record<string, string>;
   created_at: string;
   white_label_theme_id: string | null;
+  external_id: string | null;
 }
 
 export async function createExtendedEvent(input: CreateEventInput): Promise<ExtendedDatabaseEvent> {
@@ -191,6 +192,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       seat_status: {},
       platform_fee_percent: feeConfig.platformFeePercent, // Use global fee config
       white_label_theme_id: input.whiteLabelThemeId || null,
+      external_id: input.externalId || null,
     })
     .select()
     .single();
@@ -315,6 +317,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     seatStatus,
     whiteLabelThemeId: event.white_label_theme_id,
     whiteLabelTheme,
+    externalId: event.external_id || null,
   };
 }
 
@@ -378,6 +381,7 @@ export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string
     seatStatus,
     whiteLabelThemeId: event.white_label_theme_id,
     whiteLabelTheme: theme,
+    externalId: event.external_id || null,
   };
 }
 

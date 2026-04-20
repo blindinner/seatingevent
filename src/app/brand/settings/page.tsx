@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getSession } from '@/lib/auth';
 import { SocialLinks as SocialLinksComponent } from '@/components/ui/SocialLinks';
-import type { WhiteLabelTheme, SocialLinks } from '@/types/whiteLabel';
+import type { WhiteLabelTheme, SocialLinks, EmbedSettings } from '@/types/whiteLabel';
 
 export default function BrandSettingsPage() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function BrandSettingsPage() {
   const [defaultHostedBy, setDefaultHostedBy] = useState('');
   const [defaultLocation, setDefaultLocation] = useState('');
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+  const [embedSettings, setEmbedSettings] = useState<EmbedSettings>({});
 
   // Track if initial load is complete to prevent auto-save on mount
   const [isInitialized, setIsInitialized] = useState(false);
@@ -41,6 +42,20 @@ export default function BrandSettingsPage() {
 
   // Preview modal state
   const [showPreview, setShowPreview] = useState(false);
+
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<Array<{
+    id: string;
+    name: string;
+    key_prefix: string;
+    created_at: string;
+    last_used_at: string | null;
+    is_active: boolean;
+  }>>([]);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [creatingKey, setCreatingKey] = useState(false);
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
+  const [loadingKeys, setLoadingKeys] = useState(false);
 
   // Fetch available themes
   useEffect(() => {
@@ -83,6 +98,7 @@ export default function BrandSettingsPage() {
     setDefaultHostedBy(theme.defaultHostedBy || '');
     setDefaultLocation(theme.defaultLocation || '');
     setSocialLinks(theme.socialLinks || {});
+    setEmbedSettings(theme.embedSettings || {});
     // Allow auto-save after state settles
     setTimeout(() => setIsInitialized(true), 100);
   };
@@ -117,6 +133,7 @@ export default function BrandSettingsPage() {
           defaultHostedBy: defaultHostedBy || null,
           defaultLocation: defaultLocation || null,
           socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : null,
+          embedSettings: Object.keys(embedSettings).length > 0 ? embedSettings : null,
         }),
       });
 
@@ -136,7 +153,7 @@ export default function BrandSettingsPage() {
     } catch {
       setAutoSaveStatus('error');
     }
-  }, [selectedTheme, name, slug, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks]);
+  }, [selectedTheme, name, slug, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks, embedSettings]);
 
   // Auto-save effect with debounce
   useEffect(() => {
@@ -157,7 +174,7 @@ export default function BrandSettingsPage() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [isInitialized, selectedTheme, name, slug, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks, performAutoSave]);
+  }, [isInitialized, selectedTheme, name, slug, navLogoUrl, logoDestinationUrl, emailLogoUrl, emailFromName, brandColor, defaultHostedBy, defaultLocation, socialLinks, embedSettings, performAutoSave]);
 
   const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
     setSocialLinks(prev => ({
@@ -235,6 +252,110 @@ export default function BrandSettingsPage() {
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Fetch API keys when theme is selected
+  useEffect(() => {
+    if (!selectedTheme) return;
+
+    const themeId = selectedTheme.id;
+
+    async function fetchApiKeys() {
+      setLoadingKeys(true);
+      try {
+        const session = await getSession();
+        if (!session?.access_token) return;
+
+        const res = await fetch('/api/v1/api-keys', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          // Filter to keys for this theme
+          const themeKeys = data.keys?.filter(
+            (k: { white_label_theme_id: string | null }) => k.white_label_theme_id === themeId
+          ) || [];
+          setApiKeys(themeKeys);
+        }
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+      } finally {
+        setLoadingKeys(false);
+      }
+    }
+
+    fetchApiKeys();
+  }, [selectedTheme]);
+
+  const createApiKey = async () => {
+    if (!selectedTheme) return;
+
+    setCreatingKey(true);
+    setNewlyCreatedKey(null);
+
+    try {
+      const session = await getSession();
+      if (!session?.access_token) {
+        setMessage({ type: 'error', text: 'Please sign in again' });
+        return;
+      }
+
+      const res = await fetch('/api/v1/api-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: newKeyName || 'API Key',
+          whiteLabelThemeId: selectedTheme.id,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setNewlyCreatedKey(data.key);
+        setApiKeys(prev => [{
+          id: data.id,
+          name: data.name,
+          key_prefix: data.keyPrefix,
+          created_at: data.createdAt,
+          last_used_at: null,
+          is_active: true,
+        }, ...prev]);
+        setNewKeyName('');
+      } else {
+        const data = await res.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to create API key' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setCreatingKey(false);
+    }
+  };
+
+  const deleteApiKey = async (keyId: string) => {
+    try {
+      const session = await getSession();
+      if (!session?.access_token) return;
+
+      const res = await fetch(`/api/v1/api-keys?id=${keyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (res.ok) {
+        setApiKeys(prev => prev.filter(k => k.id !== keyId));
+      }
+    } catch (error) {
+      console.error('Failed to delete API key:', error);
     }
   };
 
@@ -508,11 +629,11 @@ export default function BrandSettingsPage() {
                     value={slug}
                     onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     placeholder="your-brand"
-                    className="flex-1 h-12 px-4 rounded-xl bg-white/[0.08] border border-transparent text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                    className="flex-1 h-12 px-4 rounded-xl bg-white/[0.08] border border-transparent text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 font-mono"
                   />
                 </div>
                 <p className="text-[12px] text-white/40 mt-1">
-                  Your events page will be available at this URL. Use lowercase letters, numbers, and hyphens only.
+                  Your events page will be available at this URL. Also used for CMS embeds: <code className="text-emerald-400">/embed/match/{slug || 'your-slug'}/{'{'}<span className="text-blue-400">external-id</span>{'}'}</code>
                 </p>
               </div>
 
@@ -595,6 +716,258 @@ export default function BrandSettingsPage() {
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* Embed Styling Section */}
+          <section className="rounded-2xl bg-white/[0.06] p-6">
+            <h2 className="text-lg font-semibold mb-2">Default Embed Styling</h2>
+            <p className="text-[14px] text-white/60 mb-5">
+              These styles apply automatically to all embeds using your brand slug
+            </p>
+
+            <div className="space-y-5">
+              {/* Colors */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] text-white/60 mb-2">Background Color</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={embedSettings.backgroundColor || '#ffffff'}
+                      onChange={(e) => setEmbedSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                      className="w-10 h-10 rounded-lg cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={embedSettings.backgroundColor || ''}
+                      onChange={(e) => setEmbedSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                      placeholder="#ffffff"
+                      className="flex-1 h-10 px-3 rounded-lg bg-white/[0.08] border border-transparent text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[13px] text-white/60 mb-2">Button / Accent Color</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={embedSettings.primaryColor || '#10b981'}
+                      onChange={(e) => setEmbedSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="w-10 h-10 rounded-lg cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={embedSettings.primaryColor || ''}
+                      onChange={(e) => setEmbedSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      placeholder="#10b981"
+                      className="flex-1 h-10 px-3 rounded-lg bg-white/[0.08] border border-transparent text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Style Options */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[13px] text-white/60 mb-2">Corner Radius</label>
+                  <div className="flex gap-1">
+                    {(['none', 'sm', 'md', 'lg', 'xl'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setEmbedSettings(prev => ({ ...prev, borderRadius: r }))}
+                        className={`flex-1 py-2 text-xs rounded transition-colors ${
+                          embedSettings.borderRadius === r
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white/[0.08] text-white/60 hover:bg-white/[0.12]'
+                        }`}
+                      >
+                        {r === 'none' ? '▢' : r.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[13px] text-white/60 mb-2">Button Style</label>
+                  <div className="flex gap-1">
+                    {(['rounded', 'pill', 'square'] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setEmbedSettings(prev => ({ ...prev, buttonStyle: s }))}
+                        className={`flex-1 py-2 text-xs rounded transition-colors capitalize ${
+                          embedSettings.buttonStyle === s
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white/[0.08] text-white/60 hover:bg-white/[0.12]'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={embedSettings.compact || false}
+                    onChange={(e) => setEmbedSettings(prev => ({ ...prev, compact: e.target.checked }))}
+                    className="w-4 h-4 rounded border-white/20 bg-white/[0.08] text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+                  />
+                  <span className="text-[13px] text-white/70">Compact mode</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={embedSettings.hideHeader || false}
+                    onChange={(e) => setEmbedSettings(prev => ({ ...prev, hideHeader: e.target.checked }))}
+                    className="w-4 h-4 rounded border-white/20 bg-white/[0.08] text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+                  />
+                  <span className="text-[13px] text-white/70">Hide header</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={embedSettings.hidePoweredBy || false}
+                    onChange={(e) => setEmbedSettings(prev => ({ ...prev, hidePoweredBy: e.target.checked }))}
+                    className="w-4 h-4 rounded border-white/20 bg-white/[0.08] text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+                  />
+                  <span className="text-[13px] text-white/70">Hide &quot;Powered by&quot;</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          {/* API Keys Section */}
+          <section className="rounded-2xl bg-white/[0.06] p-6">
+            <h2 className="text-lg font-semibold mb-2">API Keys</h2>
+            <p className="text-[14px] text-white/60 mb-5">
+              Create API keys to programmatically create events via the REST API.
+              <a
+                href="/docs/api"
+                target="_blank"
+                className="text-amber-400 hover:underline ml-1"
+              >
+                View API docs
+              </a>
+            </p>
+
+            {/* Create new key */}
+            <div className="flex gap-3 mb-6">
+              <input
+                type="text"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                placeholder="Key name (optional)"
+                className="flex-1 h-10 px-4 rounded-lg bg-white/[0.08] border border-transparent text-[14px] text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+              />
+              <button
+                onClick={createApiKey}
+                disabled={creatingKey}
+                className="h-10 px-4 text-[14px] font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-50 transition-colors"
+              >
+                {creatingKey ? 'Creating...' : 'Create Key'}
+              </button>
+            </div>
+
+            {/* Newly created key alert */}
+            {newlyCreatedKey && (
+              <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] text-amber-200 font-medium mb-2">
+                      Save this key - it will not be shown again!
+                    </p>
+                    <code className="block p-3 rounded-lg bg-black/30 text-[13px] text-amber-400 font-mono break-all select-all">
+                      {newlyCreatedKey}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(newlyCreatedKey);
+                        setMessage({ type: 'success', text: 'API key copied to clipboard!' });
+                      }}
+                      className="mt-2 text-[13px] text-amber-400 hover:text-amber-300"
+                    >
+                      Copy to clipboard
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setNewlyCreatedKey(null)}
+                    className="text-white/40 hover:text-white"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Existing keys */}
+            {loadingKeys ? (
+              <div className="flex items-center gap-2 text-white/40 text-[14px]">
+                <div className="animate-spin w-4 h-4 border-2 border-white/20 border-t-white/40 rounded-full" />
+                Loading keys...
+              </div>
+            ) : apiKeys.length === 0 ? (
+              <p className="text-[14px] text-white/40">No API keys yet. Create one to get started.</p>
+            ) : (
+              <div className="space-y-3">
+                {apiKeys.map((key) => (
+                  <div key={key.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.04]">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] text-white font-medium">{key.name}</span>
+                        <code className="text-[12px] text-white/40 font-mono">{key.key_prefix}</code>
+                      </div>
+                      <div className="text-[12px] text-white/40 mt-1">
+                        Created {new Date(key.created_at).toLocaleDateString()}
+                        {key.last_used_at && (
+                          <span className="ml-3">
+                            Last used {new Date(key.last_used_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (confirm('Are you sure you want to revoke this API key? This cannot be undone.')) {
+                          deleteApiKey(key.id);
+                        }
+                      }}
+                      className="text-[13px] text-red-400 hover:text-red-300 px-3 py-1"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* API Usage Example */}
+            {apiKeys.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <p className="text-[13px] text-white/60 mb-3">Quick example:</p>
+                <pre className="p-4 rounded-lg bg-black/30 text-[12px] text-white/70 font-mono overflow-x-auto">
+{`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/events \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "external_id": "movie-123",
+    "name": "Movie Night",
+    "date": "2026-04-20",
+    "time": "19:00",
+    "price": 50
+  }'`}
+                </pre>
+              </div>
+            )}
           </section>
 
           {/* Action Buttons */}

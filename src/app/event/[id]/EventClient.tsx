@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/currency';
 import { CheckoutModal } from '@/components/checkout/CheckoutModal';
 import { subscribeToEventSeats } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ProfileDropdown } from '@/components/layout/ProfileDropdown';
 import { usePageView } from '@/hooks/usePageView';
 import { SocialLinks } from '@/components/ui/SocialLinks';
 import { useTranslation } from '@/lib/translations';
@@ -363,6 +364,10 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 </button>
               </>
             )}
+            {/* Profile dropdown */}
+            <div className="hidden sm:block">
+              <ProfileDropdown variant={isDarkMode ? 'dark' : 'light'} compact />
+            </div>
           </div>
         </div>
       </nav>

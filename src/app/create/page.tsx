@@ -20,6 +20,7 @@ import { createMap, createExtendedEvent, uploadCoverImage } from '@/lib/supabase
 import { SimpleAuthModal } from '@/components/auth/SimpleAuthModal';
 import { EventPreviewModal } from '@/components/create/EventPreviewModal';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ProfileDropdown } from '@/components/layout/ProfileDropdown';
 import { Vibrant } from 'node-vibrant/browser';
 import { useTranslation } from '@/lib/translations';
 
@@ -1233,6 +1234,7 @@ export default function CreateEvent() {
   const [applyAccentToBackground, setApplyAccentToBackground] = useState(false); // Apply accent color to background
   const [whiteLabelThemeId, setWhiteLabelThemeId] = useState<string | null>(null);
   const [whiteLabelTheme, setWhiteLabelTheme] = useState<import('@/types/whiteLabel').WhiteLabelTheme | null>(null);
+  const [externalId, setExternalId] = useState<string>(''); // For CMS integration
 
   // Sync accent color with first seat category
   useEffect(() => {
@@ -1366,6 +1368,7 @@ export default function CreateEvent() {
         isDemo,
         language,
         whiteLabelThemeId: whiteLabelThemeId || undefined,
+        externalId: externalId || undefined,
       });
 
       // 4. Redirect to event page using short_id for nicer URLs
@@ -1425,17 +1428,10 @@ export default function CreateEvent() {
             )}
           </Link>
           <div className="flex items-center gap-3">
-            {/* User indicator */}
-            {user && (
-              <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full ${isDarkMode ? 'bg-white/10 border border-white/10' : 'bg-black/5 border border-black/10'}`}>
-                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[10px] font-medium text-white">
-                  {user.email?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <span className={`text-xs max-w-[100px] truncate ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>
-                  {user.email?.split('@')[0]}
-                </span>
-              </div>
-            )}
+            {/* User profile dropdown */}
+            <div className="hidden sm:block">
+              <ProfileDropdown variant={isDarkMode ? 'dark' : 'light'} compact />
+            </div>
             <button
               type="button"
               onClick={() => setPreviewModalOpen(true)}
@@ -1993,6 +1989,30 @@ export default function CreateEvent() {
                     }
                   }}
                 />
+              )}
+
+              {/* External ID for CMS Integration (only shows when white-label theme is selected) */}
+              {whiteLabelThemeId && (
+                <div className="space-y-2">
+                  <p className={`text-[12px] uppercase tracking-wider px-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
+                    External ID (CMS Integration)
+                  </p>
+                  <div className={`flex items-center gap-3 rounded-xl px-4 py-3 ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.03]'}`}>
+                    <svg className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={externalId}
+                      onChange={(e) => setExternalId(e.target.value.trim())}
+                      placeholder="e.g., movie-123 or page-456"
+                      className={`flex-1 text-[14px] bg-transparent border-none focus:outline-none focus:ring-0 ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
+                    />
+                  </div>
+                  <p className={`text-[11px] px-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>
+                    Match this with your CMS page ID for automatic embed matching
+                  </p>
+                </div>
               )}
 
               {/* Event Type Selector */}

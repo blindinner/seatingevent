@@ -450,6 +450,7 @@ export default function EditEvent() {
   const [description, setDescription] = useState('');
   const [descriptionRtl, setDescriptionRtl] = useState(false);
   const [hostedBy, setHostedBy] = useState('');
+  const [externalId, setExternalId] = useState('');
   const [requireApproval, setRequireApproval] = useState(false);
   const [sendQrCode, setSendQrCode] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
@@ -517,6 +518,7 @@ export default function EditEvent() {
         setDescription(event.description || '');
         setDescriptionRtl(event.description_rtl || false);
         setHostedBy(event.hosted_by || '');
+        setExternalId(event.external_id || '');
         setRequireApproval(event.require_approval || false);
         setSendQrCode(event.send_qr_code !== false); // Default to true
         setIsDemo(event.is_demo || false);
@@ -685,6 +687,7 @@ export default function EditEvent() {
           description: description || null,
           description_rtl: descriptionRtl,
           hosted_by: hostedBy || null,
+          external_id: externalId || null,
           start_date: startDate,
           start_time: startTime,
           end_date: endDate || null,
@@ -999,6 +1002,25 @@ export default function EditEvent() {
                     placeholder="Hosted by..."
                     className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0"
                   />
+                </div>
+              </div>
+
+              {/* External ID - for embed matching */}
+              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <svg className="w-5 h-5 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={externalId}
+                    onChange={(e) => setExternalId(e.target.value)}
+                    placeholder="External ID (for embed matching)"
+                    className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0"
+                  />
+                </div>
+                <div className="px-4 pb-3 text-xs text-white/40">
+                  Match your CMS page ID for automatic embed integration
                 </div>
               </div>
 
