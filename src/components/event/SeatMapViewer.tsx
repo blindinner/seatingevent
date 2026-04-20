@@ -270,6 +270,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
   const renderSeat = (seat: SeatElement, offsetX = 0, offsetY = 0, parentCategory?: string) => {
     const x = seat.x + offsetX;
     const y = seat.y + offsetY;
+    const radius = seat.radius || 12;
     const categoryId = seat.category || parentCategory || 'general';
     const isSelected = isSeatSelected(seat.id);
     // Check live seat status from database
@@ -280,18 +281,23 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     const isUnavailable = seat.status === 'booked' || seat.status === 'blocked' || seat.status === 'reserved' || isSold || isLocked;
 
     let fillColor = getCategoryColor(categoryId);
-    let strokeColor = 'rgba(255,255,255,0.2)';
+    let strokeColor = 'rgba(255,255,255,0.3)';
     let strokeWidth = 1;
     let opacity = 1;
+    let textColor = 'white';
+    let textOpacity = 1;
 
     if (isSelected) {
-      fillColor = '#22C55E'; // Green for selected
-      strokeColor = '#16A34A';
+      fillColor = accentColor || '#22C55E'; // Green for selected (or custom accent)
+      strokeColor = adjustColorBrightness(fillColor, -30);
       strokeWidth = 2;
     } else if (isUnavailable) {
-      fillColor = '#1f1f1f'; // Dark gray for unavailable
-      strokeColor = '#444444';
-      opacity = 0.6;
+      // Sold seats: subtle, grayed out appearance
+      fillColor = 'transparent';
+      strokeColor = 'rgba(255,255,255,0.15)';
+      strokeWidth = 1;
+      textColor = 'rgba(255,255,255,0.25)';
+      textOpacity = 1;
     }
 
     return (
@@ -303,48 +309,26 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         onMouseLeave={handleSeatLeave}
         style={{ cursor: isUnavailable ? 'not-allowed' : 'pointer' }}
       >
+        {/* Seat circle */}
         <circle
           cx={x}
           cy={y}
-          r={seat.radius || 12}
+          r={radius}
           fill={fillColor}
           stroke={strokeColor}
           strokeWidth={strokeWidth}
           opacity={opacity}
         />
-        {/* X mark for sold/unavailable seats */}
-        {isUnavailable && (
-          <>
-            <line
-              x1={x - (seat.radius || 12) * 0.4}
-              y1={y - (seat.radius || 12) * 0.4}
-              x2={x + (seat.radius || 12) * 0.4}
-              y2={y + (seat.radius || 12) * 0.4}
-              stroke="#666"
-              strokeWidth={1.5}
-              opacity={0.8}
-              pointerEvents="none"
-            />
-            <line
-              x1={x + (seat.radius || 12) * 0.4}
-              y1={y - (seat.radius || 12) * 0.4}
-              x2={x - (seat.radius || 12) * 0.4}
-              y2={y + (seat.radius || 12) * 0.4}
-              stroke="#666"
-              strokeWidth={1.5}
-              opacity={0.8}
-              pointerEvents="none"
-            />
-          </>
-        )}
-        {(seat.radius || 12) >= 10 && !isUnavailable && (
+        {/* Seat number label */}
+        {radius >= 10 && (
           <text
             x={x}
             y={y}
             textAnchor="middle"
             dominantBaseline="middle"
-            fill="white"
-            fontSize={Math.max(7, (seat.radius || 12) * 0.6)}
+            fill={textColor}
+            opacity={textOpacity}
+            fontSize={Math.max(7, radius * 0.6)}
             fontWeight="500"
             pointerEvents="none"
           >
