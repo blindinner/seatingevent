@@ -38,12 +38,12 @@ interface ViewState {
 export function SeatMapViewer({ mapData, currency, backgroundColor, compact = false, height, seatStatus = {}, accentColor }: SeatMapViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const recentTouchRef = useRef<number>(0); // Timestamp of recent touch to prevent double-firing
 
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, panX: 0, panY: 0 });
   const [hoveredSeat, setHoveredSeat] = useState<{ seat: SeatElement; category: CategoryConfig | undefined } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
 
   const selectedSeats = useSeatSelectionStore((state) => state.selectedSeats);
   const toggleSeat = useSeatSelectionStore((state) => state.toggleSeat);
@@ -219,18 +219,6 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     });
   }, [bounds]);
 
-  // Touch event handlers for mobile (only for seat selection, no panning)
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    setTouchStartPos(null);
-  }, []);
-
   // Handle seat click
   const handleSeatClick = useCallback((seat: SeatElement, parentCategory?: string) => {
     // Check if seat is unavailable (from map data or live status)
@@ -309,14 +297,23 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     const handleSeatTouchEnd = (e: React.TouchEvent) => {
       if (!isUnavailable) {
         e.stopPropagation();
+        // Mark that we just handled a touch to prevent click from double-firing
+        recentTouchRef.current = Date.now();
         handleSeatClick(seat, parentCategory);
       }
+    };
+
+    // Handle click - skip if we just handled a touch event (within 300ms)
+    const handleSeatClickEvent = () => {
+      const timeSinceTouch = Date.now() - recentTouchRef.current;
+      if (timeSinceTouch < 300) return; // Skip click if touch just happened
+      handleSeatClick(seat, parentCategory);
     };
 
     return (
       <g
         key={seat.id}
-        onClick={() => handleSeatClick(seat, parentCategory)}
+        onClick={handleSeatClickEvent}
         onTouchEnd={handleSeatTouchEnd}
         onMouseEnter={(e) => handleSeatHover(e, seat, parentCategory)}
         onMouseMove={handleSeatMouseMove}
@@ -853,8 +850,6 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         ref={containerRef}
         className={`relative w-full ${containerHeight} overflow-hidden`}
         style={{ backgroundColor: containerBg }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
         <svg
