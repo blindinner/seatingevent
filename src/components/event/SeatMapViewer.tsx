@@ -44,9 +44,26 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredSeat, setHoveredSeat] = useState<{ seat: SeatElement; category: CategoryConfig | undefined } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
 
   const selectedSeats = useSeatSelectionStore((state) => state.selectedSeats);
   const toggleSeat = useSeatSelectionStore((state) => state.toggleSeat);
+
+  // Detect touch device
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkTouch();
+    // Also detect on first touch
+    const handleFirstTouch = () => {
+      setIsTouchDevice(true);
+      window.removeEventListener('touchstart', handleFirstTouch);
+    };
+    window.addEventListener('touchstart', handleFirstTouch);
+    return () => window.removeEventListener('touchstart', handleFirstTouch);
+  }, []);
 
   // Check if seat is selected - using selectedSeats directly ensures re-renders
   const isSeatSelected = useCallback((seatId: string) => {
@@ -227,6 +244,38 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     setIsPanning(false);
   }, []);
 
+  // Touch event handlers for mobile panning
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+      setPanStart({ x: touch.clientX - viewState.panX, y: touch.clientY - viewState.panY });
+    }
+  }, [viewState.panX, viewState.panY]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1 && touchStartPos) {
+      const touch = e.touches[0];
+      const dx = Math.abs(touch.clientX - touchStartPos.x);
+      const dy = Math.abs(touch.clientY - touchStartPos.y);
+
+      // Only start panning if moved more than 10px (to allow taps for seat selection)
+      if (dx > 10 || dy > 10) {
+        setIsPanning(true);
+        setViewState(prev => ({
+          ...prev,
+          panX: touch.clientX - panStart.x,
+          panY: touch.clientY - panStart.y,
+        }));
+      }
+    }
+  }, [touchStartPos, panStart]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsPanning(false);
+    setTouchStartPos(null);
+  }, []);
+
   // Handle seat click
   const handleSeatClick = useCallback((seat: SeatElement, parentCategory?: string) => {
     // Check if seat is unavailable (from map data or live status)
@@ -245,17 +294,18 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     toggleSeat(seat.id, seat.label, categoryId, price);
   }, [toggleSeat, getCategoryConfig, seatStatus]);
 
-  // Handle seat hover
+  // Handle seat hover (desktop only - no tooltip on touch devices)
   const handleSeatHover = useCallback((
     e: React.MouseEvent,
     seat: SeatElement,
     parentCategory?: string
   ) => {
+    if (isTouchDevice) return; // No tooltip on touch devices
     const categoryId = seat.category || parentCategory || 'general';
     const category = getCategoryConfig(categoryId);
     setHoveredSeat({ seat, category });
     setTooltipPosition({ x: e.clientX, y: e.clientY });
-  }, [getCategoryConfig]);
+  }, [getCategoryConfig, isTouchDevice]);
 
   // Update tooltip position on mouse move within seat
   const handleSeatMouseMove = useCallback((e: React.MouseEvent) => {
@@ -303,7 +353,7 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
     return (
       <g
         key={seat.id}
-        onClick={() => handleSeatClick(seat, parentCategory)}
+        onClick={() => !isPanning && handleSeatClick(seat, parentCategory)}
         onMouseEnter={(e) => handleSeatHover(e, seat, parentCategory)}
         onMouseMove={handleSeatMouseMove}
         onMouseLeave={handleSeatLeave}
@@ -843,6 +893,9 @@ export function SeatMapViewer({ mapData, currency, backgroundColor, compact = fa
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
         <svg
