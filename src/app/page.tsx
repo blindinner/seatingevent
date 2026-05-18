@@ -107,7 +107,145 @@ export default function Home() {
         <div className="flex justify-center">
           <DemoVideo />
         </div>
+
+        {/* Pricing Section */}
+        <div className="mt-24 max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Simple, transparent pricing</h2>
+            <p className="text-white/50">Only pay when you sell tickets. No monthly fees.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Standard */}
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Standard</h3>
+                  <p className="text-white/50 text-sm">5% per ticket sold</p>
+                </div>
+              </div>
+              <p className="text-white/60 text-sm mb-5">
+                Everything you need to create and sell tickets for your events.
+              </p>
+              <ul className="space-y-2.5 text-sm">
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Beautiful event pages
+                </li>
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Seat map editor
+                </li>
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Dashboard & analytics
+                </li>
+                <li className="flex items-center gap-2.5 text-white/40">
+                  <svg className="w-4 h-4 text-white/20 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  &quot;Powered by Rendeza&quot; shown
+                </li>
+              </ul>
+            </div>
+
+            {/* Branded */}
+            <div className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/[0.05] p-6 relative">
+              <div className="absolute -top-3 left-6">
+                <span className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider bg-amber-500 text-black rounded-full">
+                  Popular
+                </span>
+              </div>
+              <div className="flex items-center gap-3 mb-4 mt-1">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Your Brand</h3>
+                  <p className="text-amber-400 text-sm">8% per ticket sold</p>
+                </div>
+              </div>
+              <p className="text-white/60 text-sm mb-5">
+                Be the face of your events. Build recognition and grow your audience.
+              </p>
+              <ul className="space-y-2.5 text-sm">
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Everything in Standard
+                </li>
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Your logo on events & tickets
+                </li>
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Emails from your brand name
+                </li>
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Your own events page
+                </li>
+                <li className="flex items-center gap-2.5 text-white/70">
+                  <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  No platform branding
+                </li>
+              </ul>
+              <Link
+                href="/brand/settings"
+                className="mt-6 w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors"
+              >
+                Set up your brand
+              </Link>
+            </div>
+          </div>
+        </div>
       </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-8 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-white/30">
+            © {new Date().getFullYear()} Rendeza. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/terms"
+              className="text-sm text-white/40 hover:text-white/70 transition-colors"
+            >
+              Terms of Use
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-sm text-white/40 hover:text-white/70 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+          </div>
+        </div>
+      </footer>
 
       {/* Floating particles */}
       <div className="absolute top-1/4 left-10 w-2 h-2 bg-amber-400/40 rounded-full animate-float" />

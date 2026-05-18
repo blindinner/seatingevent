@@ -135,13 +135,13 @@ export async function POST(request: NextRequest) {
           // Fetch event details with owner info and email settings
           const { data: event } = await supabaseAdmin.client
             .from('events')
-            .select('name, start_date, start_time, location, user_id, email_settings, send_qr_code, white_label_theme_id')
+            .select('name, start_date, start_time, location, cover_image_url, user_id, email_settings, send_qr_code, white_label_theme_id')
             .eq('id', eventId)
             .single();
 
           if (event) {
             // Fetch white-label theme if set
-            let whiteLabelTheme: { logoUrl: string | null; name: string; fromName: string | null } | undefined;
+            let whiteLabelTheme: { logoUrl: string | null; name: string; fromName: string | null; brandColor?: string | null } | undefined;
             if (event.white_label_theme_id) {
               const { getThemeById } = await import('@/lib/whiteLabel');
               const theme = await getThemeById(event.white_label_theme_id);
@@ -150,7 +150,23 @@ export async function POST(request: NextRequest) {
                   logoUrl: theme.emailLogoUrl || theme.navLogoUrl,
                   name: theme.name,
                   fromName: theme.emailFromName,
+                  brandColor: theme.brandColor,
                 };
+              }
+            }
+
+            // Fetch organizer email for reply-to
+            let organizerEmail: string | undefined;
+            if (event.user_id) {
+              const { data: ownerProfile } = await supabaseAdmin.client
+                .from('profiles')
+                .select('email')
+                .eq('id', event.user_id)
+                .single();
+              organizerEmail = ownerProfile?.email || undefined;
+              if (!organizerEmail) {
+                const { data: authUser } = await supabaseAdmin.client.auth.admin.getUserById(event.user_id);
+                organizerEmail = authUser?.user?.email || undefined;
               }
             }
 
@@ -165,12 +181,16 @@ export async function POST(request: NextRequest) {
               eventDate: event.start_date,
               eventTime: event.start_time || undefined,
               eventLocation: event.location || undefined,
+              eventCoverUrl: event.cover_image_url || undefined,
               seats: seatDetails,
               ticketCode: order.ticketCode || 'N/A',
+              orderId: order.id,
               totalAmount: order.totalAmount,
               currency: order.currency,
               emailSettings: event.email_settings || undefined,
               sendQrCode: event.send_qr_code !== false,
+              attachPdf: true,
+              organizerEmail,
               whiteLabelTheme,
             });
 

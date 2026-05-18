@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getThemeById } from '@/lib/whiteLabel';
 
 export async function GET(
   request: NextRequest,
@@ -30,12 +31,32 @@ export async function GET(
       metadata: rawData.metadata,
     };
 
-    // Get event details
+    // Get event details including branding
     const { data: event } = await supabaseAdmin.client
       .from('events')
-      .select('name, start_date, start_time, location')
+      .select('name, start_date, start_time, location, white_label_theme_id, brand_logo_url, brand_email_name')
       .eq('id', order.eventId)
       .single();
+
+    // Fetch white-label theme if set, or use event-level branding
+    let whiteLabelTheme: { name: string; logoUrl: string | null; brandColor: string | null } | undefined;
+    if (event?.white_label_theme_id) {
+      const theme = await getThemeById(event.white_label_theme_id);
+      if (theme) {
+        whiteLabelTheme = {
+          name: theme.name,
+          logoUrl: theme.navLogoUrl || null,
+          brandColor: theme.brandColor || null,
+        };
+      }
+    } else if (event?.brand_logo_url || event?.brand_email_name) {
+      // Use event-level branding if no white-label theme
+      whiteLabelTheme = {
+        name: event.brand_email_name || event.name,
+        logoUrl: event.brand_logo_url || null,
+        brandColor: null,
+      };
+    }
 
     // Format the response
     const seats = (order.metadata?.seats as Array<{ label: string; category: string; price: number }>) || [];
@@ -55,6 +76,7 @@ export async function GET(
       currency: order.currency,
       status: order.status,
       ticketCode: order.ticketCode,
+      whiteLabelTheme,
     }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0',

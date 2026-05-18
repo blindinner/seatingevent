@@ -19,6 +19,11 @@ interface OrderDetails {
   currency: string;
   status: 'pending' | 'paid' | 'failed' | 'cancelled';
   ticketCode: string | null;
+  whiteLabelTheme?: {
+    name: string;
+    logoUrl: string | null;
+    brandColor: string | null;
+  };
 }
 
 export default function OrderConfirmationPage() {
@@ -28,6 +33,7 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Fetch order once on mount - payment should already be confirmed
   useEffect(() => {
@@ -57,6 +63,32 @@ export default function OrderConfirmationPage() {
     }).format(amount);
   };
 
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      const response = await fetch(`/api/orders/${orderId}/ticket-pdf`);
+      if (!response.ok) throw new Error('Failed to generate PDF');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ticket-${order?.ticketCode || orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Get branding info
+  const logoUrl = order?.whiteLabelTheme?.logoUrl || '/logo.png';
+  const brandColor = order?.whiteLabelTheme?.brandColor;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -83,11 +115,12 @@ export default function OrderConfirmationPage() {
         <div className="max-w-2xl mx-auto px-4 py-4">
           <Link href="/" className="group">
             <Image
-              src="/logo.png"
-              alt="Seated"
+              src={logoUrl}
+              alt={order?.whiteLabelTheme?.name || 'Seated'}
               width={168}
               height={168}
               className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+              unoptimized={logoUrl.startsWith('http')}
             />
           </Link>
         </div>
@@ -103,9 +136,29 @@ export default function OrderConfirmationPage() {
         )}
 
         {order.status === 'paid' && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6 mb-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div
+            className="rounded-xl p-6 mb-6 text-center"
+            style={{
+              backgroundColor: brandColor ? `${brandColor}15` : 'rgb(34 197 94 / 0.1)',
+              borderWidth: '1px',
+              borderStyle: 'solid',
+              borderColor: brandColor ? `${brandColor}4D` : 'rgb(34 197 94 / 0.3)',
+            }}
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{
+                backgroundColor: brandColor ? `${brandColor}33` : 'rgb(34 197 94 / 0.2)',
+              }}
+            >
+              <svg
+                className="w-8 h-8"
+                style={{ color: brandColor || 'rgb(74 222 128)' }}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -200,9 +253,38 @@ export default function OrderConfirmationPage() {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
+          {order.status === 'paid' && (
+            <button
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{
+                backgroundColor: brandColor || 'white',
+                color: brandColor ? 'white' : 'rgb(24 24 27)',
+              }}
+            >
+              {downloadingPdf ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download PDF Ticket
+                </>
+              )}
+            </button>
+          )}
           <Link
             href={`/event/${order.eventId}`}
-            className="flex-1 text-center py-3 px-4 bg-white hover:bg-zinc-100 text-zinc-900 rounded-lg font-medium transition-colors"
+            className={`flex-1 text-center py-3 px-4 rounded-lg font-medium transition-colors ${
+              order.status === 'paid'
+                ? 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                : 'bg-white hover:bg-zinc-100 text-zinc-900'
+            }`}
           >
             View Event
           </Link>
@@ -213,6 +295,27 @@ export default function OrderConfirmationPage() {
             Browse Events
           </Link>
         </div>
+
+        {/* Powered by footer - only for non-branded events */}
+        {!order.whiteLabelTheme && (
+          <div className="mt-10 pt-6 border-t border-zinc-800 text-center">
+            <a
+              href="https://rendeza.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-400 text-sm transition-colors"
+            >
+              <span>Powered by</span>
+              <Image
+                src="/logo.png"
+                alt="Rendeza"
+                width={70}
+                height={18}
+                className="h-4 w-auto opacity-50"
+              />
+            </a>
+          </div>
+        )}
       </main>
     </div>
   );

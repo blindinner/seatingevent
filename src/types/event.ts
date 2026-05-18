@@ -21,6 +21,7 @@ export interface CreateEventInput {
   description?: string;
   descriptionRtl?: boolean; // Right-to-left text direction for description
   hostedBy?: string;
+  hostVideoUrl?: string; // Video message from the host
   startDate: string;
   startTime: string;
   endDate?: string;
@@ -45,6 +46,10 @@ export interface CreateEventInput {
   whiteLabelThemeId?: string;
   slug?: string; // Custom URL slug for branded events (only with white-label theme)
   externalId?: string; // External ID for embed matching (e.g., cinema's internal movie ID)
+  // Event-level branding (inline branding without white-label theme)
+  brandLogoUrl?: string;
+  brandEmailName?: string;
+  brandSlug?: string;
 }
 
 import type { WhiteLabelTheme } from './whiteLabel';
@@ -57,6 +62,7 @@ export interface PublicEvent {
   description: string | null;
   descriptionRtl: boolean; // Right-to-left text direction for description
   hostedBy: string | null;
+  hostVideoUrl: string | null; // Video message from the host
   startDate: string;
   startTime: string | null;
   endDate: string | null;
@@ -84,4 +90,8 @@ export interface PublicEvent {
   whiteLabelThemeId: string | null;
   whiteLabelTheme?: WhiteLabelTheme;
   externalId: string | null; // External ID for embed matching (e.g., cinema's internal movie ID)
+  // Event-level branding
+  brandLogoUrl: string | null;
+  brandEmailName: string | null;
+  brandSlug: string | null;
 }

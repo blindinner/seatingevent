@@ -127,6 +127,8 @@ export function CheckoutModal({
     phone: '',
   });
   const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -143,6 +145,8 @@ export function CheckoutModal({
       setOrderId(null);
       setPaymentError(null);
       setIsPaymentProcessing(false);
+      setTermsAccepted(false);
+      setTermsError(false);
       allpayInstanceRef.current = null;
     }
   }, [isOpen]);
@@ -258,8 +262,15 @@ export function CheckoutModal({
       newErrors.phone = 'Phone number is required';
     }
 
+    // Check terms acceptance
+    if (!termsAccepted) {
+      setTermsError(true);
+    } else {
+      setTermsError(false);
+    }
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 0 && termsAccepted;
   };
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
@@ -596,11 +607,65 @@ export function CheckoutModal({
                   </div>
                 </div>
 
+                {/* Terms acceptance checkbox */}
+                <div className="mt-6">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => {
+                        setTermsAccepted(e.target.checked);
+                        if (e.target.checked) setTermsError(false);
+                      }}
+                      className={`mt-0.5 w-5 h-5 rounded border-2 appearance-none cursor-pointer transition-all flex-shrink-0 ${
+                        termsError
+                          ? 'border-red-500'
+                          : isDarkMode
+                            ? 'border-white/30 checked:bg-white checked:border-white'
+                            : 'border-zinc-400 checked:bg-zinc-900 checked:border-zinc-900'
+                      }`}
+                      style={{
+                        backgroundImage: termsAccepted
+                          ? `url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='${isDarkMode ? '%23000' : '%23fff'}' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E")`
+                          : 'none',
+                        backgroundSize: '100%',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                      }}
+                    />
+                    <span className={`text-[13px] leading-relaxed ${isDarkMode ? 'text-white/70' : 'text-zinc-600'}`}>
+                      {t('acceptTerms')}{' '}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`underline hover:no-underline ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t('termsOfUse')}
+                      </a>{' '}
+                      {t('and')}{' '}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`underline hover:no-underline ${isDarkMode ? 'text-white' : 'text-zinc-900'}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {t('privacyPolicy')}
+                      </a>
+                    </span>
+                  </label>
+                  {termsError && (
+                    <p className="text-[12px] text-red-400 mt-2 ms-8">{t('mustAcceptTerms')}</p>
+                  )}
+                </div>
+
                 {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-14 mt-8 text-[16px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:opacity-90"
+                  className="w-full h-14 mt-6 text-[16px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:opacity-90"
                   style={{
                     backgroundColor: accentColor,
                     color: buttonTextColor,
@@ -621,10 +686,6 @@ export function CheckoutModal({
                     `${t('continueToPayment')} · ${formatCurrency(totalPrice, currency)}`
                   )}
                 </button>
-
-                <p className={`text-center text-[12px] mt-4 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
-                  {t('termsAgreement')}
-                </p>
               </form>
             )}
 

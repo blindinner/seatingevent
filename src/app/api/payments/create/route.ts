@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       // Fetch event details for email
       const { data: eventData } = await supabaseAdmin.client
         .from('events')
-        .select('name, start_date, start_time, location, email_settings, send_qr_code, white_label_theme_id')
+        .select('name, start_date, start_time, location, email_settings, send_qr_code, white_label_theme_id, user_id')
         .eq('id', eventId)
         .single();
 
@@ -154,6 +154,21 @@ export async function POST(request: NextRequest) {
             name: theme.name,
             fromName: theme.emailFromName,
           };
+        }
+      }
+
+      // Fetch organizer email for reply-to
+      let organizerEmail: string | undefined;
+      if (eventData?.user_id) {
+        const { data: ownerProfile } = await supabaseAdmin.client
+          .from('profiles')
+          .select('email')
+          .eq('id', eventData.user_id)
+          .single();
+        organizerEmail = ownerProfile?.email || undefined;
+        if (!organizerEmail) {
+          const { data: authUser } = await supabaseAdmin.client.auth.admin.getUserById(eventData.user_id);
+          organizerEmail = authUser?.user?.email || undefined;
         }
       }
 
@@ -191,6 +206,7 @@ export async function POST(request: NextRequest) {
             currency,
             emailSettings: eventData.email_settings || undefined,
             sendQrCode: sendQrCodeValue,
+            organizerEmail,
             whiteLabelTheme,
           });
           console.log('Email result:', emailResult);

@@ -14,6 +14,7 @@ export function ProfileDropdown({ variant = 'dark', compact = false }: ProfileDr
   const { user, loading, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hasThemes, setHasThemes] = useState(false);
+  const [tier, setTier] = useState<'free' | 'branded'>('free');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isDark = variant === 'dark';
@@ -28,27 +29,48 @@ export function ProfileDropdown({ variant = 'dark', compact = false }: ProfileDr
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Check if user has access to any white-label themes
+  // Check user tier and white-label themes
   useEffect(() => {
     if (!user?.email) {
       setHasThemes(false);
+      setTier('free');
       return;
     }
 
-    async function checkThemes() {
+    async function checkTierAndThemes() {
       try {
-        const res = await fetch(`/api/white-label/themes?email=${encodeURIComponent(user!.email!)}`);
-        if (res.ok) {
-          const data = await res.json();
+        // Check themes
+        const themesRes = await fetch(`/api/white-label/themes?email=${encodeURIComponent(user!.email!)}`);
+        if (themesRes.ok) {
+          const data = await themesRes.json();
           setHasThemes((data.themes?.length || 0) > 0);
+        }
+
+        // Check tier (from profile API)
+        const profileRes = await fetch('/api/account/profile', {
+          headers: {
+            'Authorization': `Bearer ${await getAccessToken()}`,
+          },
+        });
+        if (profileRes.ok) {
+          const data = await profileRes.json();
+          setTier(data.profile?.tier || 'free');
         }
       } catch {
         setHasThemes(false);
+        setTier('free');
       }
     }
 
-    checkThemes();
+    checkTierAndThemes();
   }, [user?.email]);
+
+  // Helper to get access token
+  async function getAccessToken() {
+    const { getSession } = await import('@/lib/auth');
+    const session = await getSession();
+    return session?.access_token || '';
+  }
 
   const handleSignOut = async () => {
     await signOut();
@@ -128,7 +150,18 @@ export function ProfileDropdown({ variant = 'dark', compact = false }: ProfileDr
               </svg>
               My Events
             </Link>
-            {hasThemes && (
+            <Link
+              href="/account/settings"
+              onClick={() => setDropdownOpen(false)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors ${isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-50'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Account Settings
+            </Link>
+            {(tier === 'branded' || hasThemes) && (
               <Link
                 href="/brand/settings"
                 onClick={() => setDropdownOpen(false)}

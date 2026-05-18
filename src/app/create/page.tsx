@@ -1190,6 +1190,8 @@ export default function CreateEvent() {
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [description, setDescription] = useState('');
   const [hostedBy, setHostedBy] = useState('');
+  const [hostVideoUrl, setHostVideoUrl] = useState<string | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [requireApproval, setRequireApproval] = useState(false);
   const [capacity, setCapacity] = useState('Unlimited');
 
@@ -1235,6 +1237,10 @@ export default function CreateEvent() {
   const [whiteLabelThemeId, setWhiteLabelThemeId] = useState<string | null>(null);
   const [whiteLabelTheme, setWhiteLabelTheme] = useState<import('@/types/whiteLabel').WhiteLabelTheme | null>(null);
   const [externalId, setExternalId] = useState<string>(''); // For CMS integration
+
+  // Fee is determined by whether a brand (white-label theme) is selected
+  const usesBranding = Boolean(whiteLabelThemeId);
+  const platformFeePercent = usesBranding ? 8 : 5;
 
   // Sync accent color with first seat category
   useEffect(() => {
@@ -1349,6 +1355,7 @@ export default function CreateEvent() {
         description: description || undefined,
         descriptionRtl: language === 'he',
         hostedBy: hostedBy || undefined,
+        hostVideoUrl: hostVideoUrl || undefined,
         startDate,
         startTime,
         endDate: endDate || undefined,
@@ -1410,23 +1417,25 @@ export default function CreateEvent() {
         style={{ backgroundColor: `${effectiveBackgroundColor}cc` }}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="group">
-            {whiteLabelTheme?.navLogoUrl ? (
-              <img
-                src={whiteLabelTheme.navLogoUrl}
-                alt={whiteLabelTheme.name}
-                className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
-              />
-            ) : (
-              <Image
-                src="/logo.png"
-                alt="Seated"
-                width={144}
-                height={144}
-                className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
-              />
-            )}
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="group">
+              {whiteLabelTheme?.navLogoUrl ? (
+                <img
+                  src={whiteLabelTheme.navLogoUrl}
+                  alt={whiteLabelTheme.name}
+                  className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
+                />
+              ) : (
+                <Image
+                  src="/logo.png"
+                  alt="Seated"
+                  width={144}
+                  height={144}
+                  className="max-h-9 w-auto group-hover:scale-105 transition-all duration-300"
+                />
+              )}
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             {/* User profile dropdown */}
             <div className="hidden sm:block">
@@ -1962,57 +1971,101 @@ export default function CreateEvent() {
                 </div>
               </div>
 
-              {/* White-Label Theme Selector (only shows if user has access) */}
+              {/* Host Video Message */}
+              <div className={`rounded-2xl backdrop-blur-sm border border-transparent overflow-hidden ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.04]'}`}>
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <svg className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
+                  <div className="flex-1">
+                    <span className={`text-[14px] ${isDarkMode ? 'text-white/70' : 'text-zinc-700'}`}>Host video message</span>
+                    <p className={`text-[12px] ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>A personal message from the host</p>
+                  </div>
+                  {hostVideoUrl ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-green-400">Video added</span>
+                      <button
+                        type="button"
+                        onClick={() => setHostVideoUrl(null)}
+                        className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
+                      >
+                        <svg className={`w-4 h-4 ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-colors cursor-pointer ${
+                      isUploadingVideo
+                        ? isDarkMode ? 'bg-white/5 text-white/40 cursor-not-allowed' : 'bg-black/5 text-zinc-400 cursor-not-allowed'
+                        : isDarkMode ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-black/10 text-zinc-700 hover:bg-black/20'
+                    }`}>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        disabled={isUploadingVideo}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+
+                          // Max 50MB
+                          if (file.size > 50 * 1024 * 1024) {
+                            setSubmitError('Video must be under 50MB');
+                            return;
+                          }
+
+                          setIsUploadingVideo(true);
+                          try {
+                            // Upload to Cloudinary
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('upload_preset', 'host_videos');
+
+                            const res = await fetch(
+                              `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
+                              { method: 'POST', body: formData }
+                            );
+
+                            if (!res.ok) throw new Error('Upload failed');
+
+                            const data = await res.json();
+                            setHostVideoUrl(data.secure_url);
+                          } catch (err) {
+                            console.error('Video upload failed:', err);
+                            setSubmitError('Failed to upload video');
+                          } finally {
+                            setIsUploadingVideo(false);
+                          }
+                        }}
+                      />
+                      {isUploadingVideo ? 'Uploading...' : 'Upload video'}
+                    </label>
+                  )}
+                </div>
+                {/* Video Preview */}
+                {hostVideoUrl && (
+                  <div className="px-4 pb-4">
+                    <video
+                      src={hostVideoUrl}
+                      controls
+                      className="w-full max-h-48 rounded-lg bg-black"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Your Brand Selector - only shows if user has brands set up */}
               {user?.email && (
                 <WhiteLabelThemeSelector
                   userEmail={user.email}
                   selectedThemeId={whiteLabelThemeId}
-                  isDarkMode={isDarkMode}
-                  onChange={async (id, theme) => {
-                    setWhiteLabelThemeId(id);
+                  onChange={(themeId, theme) => {
+                    setWhiteLabelThemeId(themeId);
                     setWhiteLabelTheme(theme);
-                    // Apply brand color if theme has one
-                    if (theme?.brandColor) {
-                      setSelectedColor({ id: 'brand', name: 'Brand', bg: theme.brandColor });
-                    }
-                    // Auto-fill hosted by and location from theme defaults
-                    if (theme?.defaultHostedBy) {
-                      setHostedBy(theme.defaultHostedBy);
-                    }
-                    if (theme?.defaultLocation) {
-                      setLocation(theme.defaultLocation);
-                      // Geocode the location to get coordinates and show the map
-                      const coords = await geocodeAddress(theme.defaultLocation);
-                      if (coords) {
-                        setLocationCoords(coords);
-                      }
-                    }
                   }}
+                  isDarkMode={isDarkMode}
                 />
-              )}
-
-              {/* External ID for CMS Integration (only shows when white-label theme is selected) */}
-              {whiteLabelThemeId && (
-                <div className="space-y-2">
-                  <p className={`text-[12px] uppercase tracking-wider px-1 ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>
-                    External ID (CMS Integration)
-                  </p>
-                  <div className={`flex items-center gap-3 rounded-xl px-4 py-3 ${isDarkMode ? 'bg-white/[0.06]' : 'bg-black/[0.03]'}`}>
-                    <svg className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                    </svg>
-                    <input
-                      type="text"
-                      value={externalId}
-                      onChange={(e) => setExternalId(e.target.value.trim())}
-                      placeholder="e.g., movie-123 or page-456"
-                      className={`flex-1 text-[14px] bg-transparent border-none focus:outline-none focus:ring-0 ${isDarkMode ? 'text-white/90 placeholder:text-white/30' : 'text-zinc-800 placeholder:text-zinc-400'}`}
-                    />
-                  </div>
-                  <p className={`text-[11px] px-1 ${isDarkMode ? 'text-white/30' : 'text-zinc-400'}`}>
-                    Match this with your CMS page ID for automatic embed matching
-                  </p>
-                </div>
               )}
 
               {/* Event Type Selector */}

@@ -68,8 +68,12 @@ async function sendEmailsInBackground(orderId: string) {
           start_date,
           start_time,
           location,
+          cover_image_url,
           user_id,
-          send_qr_code
+          send_qr_code,
+          white_label_theme_id,
+          brand_logo_url,
+          brand_email_name
         )
       `)
       .eq('id', orderId)
@@ -83,10 +87,52 @@ async function sendEmailsInBackground(orderId: string) {
       start_date: string;
       start_time: string | null;
       location: string | null;
+      cover_image_url: string | null;
       user_id: string;
       send_qr_code: boolean;
+      white_label_theme_id: string | null;
+      brand_logo_url: string | null;
+      brand_email_name: string | null;
     };
     const seats = (booking.metadata?.seats as Array<{ label: string; category: string }>) || [];
+
+    // Fetch organizer email for reply-to (and reuse for notification)
+    let organizerEmail: string | undefined;
+    if (event.user_id) {
+      const { data: ownerProfile } = await supabaseAdmin.client
+        .from('profiles')
+        .select('email')
+        .eq('id', event.user_id)
+        .single();
+      organizerEmail = ownerProfile?.email || undefined;
+      if (!organizerEmail) {
+        const { data: authUser } = await supabaseAdmin.client.auth.admin.getUserById(event.user_id);
+        organizerEmail = authUser?.user?.email || undefined;
+      }
+    }
+
+    // Fetch white-label theme if set, or use event-level branding
+    let whiteLabelTheme: { logoUrl: string | null; name: string; fromName: string | null; brandColor?: string | null } | undefined;
+    if (event.white_label_theme_id) {
+      const { getThemeById } = await import('@/lib/whiteLabel');
+      const theme = await getThemeById(event.white_label_theme_id);
+      if (theme) {
+        whiteLabelTheme = {
+          logoUrl: theme.emailLogoUrl || theme.navLogoUrl,
+          name: theme.name,
+          fromName: theme.emailFromName,
+          brandColor: theme.brandColor,
+        };
+      }
+    } else if (event.brand_logo_url || event.brand_email_name) {
+      // Use event-level branding if no white-label theme
+      whiteLabelTheme = {
+        logoUrl: event.brand_logo_url,
+        name: event.brand_email_name || event.name,
+        fromName: event.brand_email_name,
+        brandColor: null,
+      };
+    }
 
     // Send ticket email to customer
     if (booking.customer_email && booking.ticket_code) {
@@ -97,22 +143,21 @@ async function sendEmailsInBackground(orderId: string) {
         eventDate: event.start_date,
         eventTime: event.start_time || undefined,
         eventLocation: event.location || undefined,
+        eventCoverUrl: event.cover_image_url || undefined,
         seats: seats,
         ticketCode: booking.ticket_code,
+        orderId: booking.id,
         totalAmount: booking.amount_paid,
         currency: booking.currency,
         sendQrCode: event.send_qr_code !== false,
+        attachPdf: true,
+        organizerEmail,
+        whiteLabelTheme,
       }).catch(err => console.error('Failed to send ticket email:', err));
     }
 
-    // Get event owner email and send notification
-    if (event.user_id) {
-      const { data: owner } = await supabaseAdmin.client
-        .from('profiles')
-        .select('email')
-        .eq('id', event.user_id)
-        .single();
-
+    // Send notification to event owner
+    if (organizerEmail && booking.ticket_code) {
       // Get total order count for this event
       const { count } = await supabaseAdmin.client
         .from('bookings')
@@ -120,19 +165,17 @@ async function sendEmailsInBackground(orderId: string) {
         .eq('event_id', event.id)
         .eq('payment_status', 'paid');
 
-      if (owner?.email && booking.ticket_code) {
-        await sendOwnerNotificationEmail({
-          to: owner.email,
-          eventName: event.name,
-          customerName: booking.customer_name || 'Guest',
-          customerEmail: booking.customer_email || '',
-          seats: seats,
-          totalAmount: booking.amount_paid,
-          currency: booking.currency,
-          ticketCode: booking.ticket_code,
-          orderCount: count || 1,
-        }).catch(err => console.error('Failed to send owner notification:', err));
-      }
+      await sendOwnerNotificationEmail({
+        to: organizerEmail,
+        eventName: event.name,
+        customerName: booking.customer_name || 'Guest',
+        customerEmail: booking.customer_email || '',
+        seats: seats,
+        totalAmount: booking.amount_paid,
+        currency: booking.currency,
+        ticketCode: booking.ticket_code,
+        orderCount: count || 1,
+      }).catch(err => console.error('Failed to send owner notification:', err));
     }
   } catch (error) {
     console.error('Error sending emails:', error);

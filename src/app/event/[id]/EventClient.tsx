@@ -17,6 +17,7 @@ import { ProfileDropdown } from '@/components/layout/ProfileDropdown';
 import { usePageView } from '@/hooks/usePageView';
 import { SocialLinks } from '@/components/ui/SocialLinks';
 import { useTranslation } from '@/lib/translations';
+import { HostVideoMessage } from '@/components/event/HostVideoMessage';
 
 // Helper to determine if a color is light or dark based on luminance
 function isLightColor(hex: string): boolean {
@@ -305,8 +306,9 @@ export function EventClient({ event, mapData }: EventClientProps) {
       <BackgroundDecorations theme={event.whiteLabelTheme} />
 
       {/* Navigation */}
-      <nav className={`sticky top-0 z-50 backdrop-blur-xl border-b ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`} style={{ backgroundColor: `${themeColor}cc` }}>
+      <nav className={`relative lg:sticky lg:top-0 z-50 backdrop-blur-xl border-b ${isDarkMode ? 'border-white/[0.04]' : 'border-black/[0.04]'}`} style={{ backgroundColor: `${themeColor}cc` }}>
         <div className="max-w-6xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Logo - check white-label theme first, then event-level branding, then default */}
           {event.whiteLabelTheme?.logoDestinationUrl ? (
             <a href={event.whiteLabelTheme.logoDestinationUrl} className="group" target="_blank" rel="noopener noreferrer">
               <img
@@ -321,6 +323,12 @@ export function EventClient({ event, mapData }: EventClientProps) {
                 <img
                   src={event.whiteLabelTheme.navLogoUrl}
                   alt={event.whiteLabelTheme.name}
+                  className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
+                />
+              ) : event.brandLogoUrl ? (
+                <img
+                  src={event.brandLogoUrl}
+                  alt={event.brandEmailName || event.name}
                   className="max-h-10 w-auto group-hover:scale-105 transition-all duration-300"
                 />
               ) : (
@@ -476,12 +484,22 @@ export function EventClient({ event, mapData }: EventClientProps) {
             {/* Hosted By */}
             {event.hostedBy && (
               <div className="flex items-start gap-5">
-                {/* Host Icon */}
-                <div className={`w-16 h-16 rounded-xl backdrop-blur-sm flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white/[0.08]' : 'bg-black/[0.05]'}`}>
-                  <svg className={`w-6 h-6 ${isDarkMode ? 'text-white/60' : 'text-zinc-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                </div>
+                {/* Host Icon OR Video Avatar */}
+                {event.hostVideoUrl ? (
+                  <HostVideoMessage
+                    videoUrl={event.hostVideoUrl}
+                    hostName={event.hostedBy}
+                    variant="icon"
+                    isDarkMode={isDarkMode}
+                    accentColor={accentColor || undefined}
+                  />
+                ) : (
+                  <div className={`w-16 h-16 rounded-xl backdrop-blur-sm flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white/[0.08]' : 'bg-black/[0.05]'}`}>
+                    <svg className={`w-6 h-6 ${isDarkMode ? 'text-white/60' : 'text-zinc-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                  </div>
+                )}
                 {/* Host Details */}
                 <div className="flex-1 pt-1">
                   <p className={`text-[13px] uppercase tracking-wider font-medium ${isDarkMode ? 'text-white/40' : 'text-zinc-500'}`}>{t('hostedBy')}</p>
@@ -752,6 +770,27 @@ export function EventClient({ event, mapData }: EventClientProps) {
               {t('getTickets')}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Powered by footer - only show for non-branded events (no white-label and no event-level branding) */}
+      {!event.whiteLabelTheme && !event.brandLogoUrl && !event.brandEmailName && !event.brandSlug && (
+        <div className={`py-6 text-center border-t ${isDarkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
+          <a
+            href="https://rendeza.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-2 text-[13px] transition-opacity hover:opacity-80 ${isDarkMode ? 'text-white/40' : 'text-zinc-400'}`}
+          >
+            <span>Powered by</span>
+            <NextImage
+              src="/logo.png"
+              alt="Rendeza"
+              width={80}
+              height={20}
+              className="h-4 w-auto opacity-60"
+            />
+          </a>
         </div>
       )}
 

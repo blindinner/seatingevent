@@ -126,6 +126,7 @@ export interface ExtendedDatabaseEvent {
   description: string | null;
   description_rtl: boolean;
   hosted_by: string | null;
+  host_video_url: string | null;
   start_date: string;
   start_time: string | null;
   end_date: string | null;
@@ -149,15 +150,23 @@ export interface ExtendedDatabaseEvent {
   created_at: string;
   white_label_theme_id: string | null;
   external_id: string | null;
+  brand_logo_url: string | null;
+  brand_email_name: string | null;
+  brand_slug: string | null;
 }
 
 export async function createExtendedEvent(input: CreateEventInput): Promise<ExtendedDatabaseEvent> {
   // Generate a short, URL-friendly ID (10 chars)
   const shortId = nanoid(10);
 
-  // Get the global platform fee configuration
-  const { getFeeConfig } = await import('./financial');
-  const feeConfig = await getFeeConfig();
+  // Determine if event uses branding (any branding field = 8% fee, otherwise 5%)
+  const usesBranding = Boolean(
+    input.brandLogoUrl ||
+    input.brandEmailName ||
+    input.brandSlug ||
+    input.whiteLabelThemeId
+  );
+  const platformFeePercent = usesBranding ? 8.0 : 5.0;
 
   const { data, error } = await getSupabase()
     .from('events')
@@ -170,6 +179,7 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       description: input.description || null,
       description_rtl: input.descriptionRtl || false,
       hosted_by: input.hostedBy || null,
+      host_video_url: input.hostVideoUrl || null,
       start_date: input.startDate,
       start_time: input.startTime || null,
       end_date: input.endDate || null,
@@ -190,9 +200,13 @@ export async function createExtendedEvent(input: CreateEventInput): Promise<Exte
       is_draft: input.isDraft || false,
       language: input.language || 'en',
       seat_status: {},
-      platform_fee_percent: feeConfig.platformFeePercent, // Use global fee config
+      platform_fee_percent: platformFeePercent, // 5% standard, 8% branded
       white_label_theme_id: input.whiteLabelThemeId || null,
       external_id: input.externalId || null,
+      // Event-level branding
+      brand_logo_url: input.brandLogoUrl || null,
+      brand_email_name: input.brandEmailName || null,
+      brand_slug: input.brandSlug || null,
     })
     .select()
     .single();
@@ -292,6 +306,7 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     description: event.description,
     descriptionRtl: event.description_rtl || false,
     hostedBy: event.hosted_by,
+    hostVideoUrl: event.host_video_url || null,
     startDate: event.start_date,
     startTime: event.start_time,
     endDate: event.end_date,
@@ -318,6 +333,10 @@ export async function getPublicEvent(idOrShortId: string): Promise<PublicEvent |
     whiteLabelThemeId: event.white_label_theme_id,
     whiteLabelTheme,
     externalId: event.external_id || null,
+    // Event-level branding
+    brandLogoUrl: event.brand_logo_url || null,
+    brandEmailName: event.brand_email_name || null,
+    brandSlug: event.brand_slug || null,
   };
 }
 
@@ -356,6 +375,7 @@ export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string
     description: event.description,
     descriptionRtl: event.description_rtl || false,
     hostedBy: event.hosted_by,
+    hostVideoUrl: event.host_video_url || null,
     startDate: event.start_date,
     startTime: event.start_time,
     endDate: event.end_date,
@@ -382,6 +402,9 @@ export async function getEventByBrandedSlug(themeSlug: string, eventSlug: string
     whiteLabelThemeId: event.white_label_theme_id,
     whiteLabelTheme: theme,
     externalId: event.external_id || null,
+    brandLogoUrl: event.brand_logo_url || null,
+    brandEmailName: event.brand_email_name || null,
+    brandSlug: event.brand_slug || null,
   };
 }
 

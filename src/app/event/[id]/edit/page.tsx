@@ -450,6 +450,9 @@ export default function EditEvent() {
   const [description, setDescription] = useState('');
   const [descriptionRtl, setDescriptionRtl] = useState(false);
   const [hostedBy, setHostedBy] = useState('');
+  const [hostVideoUrl, setHostVideoUrl] = useState<string | null>(null);
+  const [hostVideoChanged, setHostVideoChanged] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [externalId, setExternalId] = useState('');
   const [requireApproval, setRequireApproval] = useState(false);
   const [sendQrCode, setSendQrCode] = useState(true);
@@ -518,6 +521,7 @@ export default function EditEvent() {
         setDescription(event.description || '');
         setDescriptionRtl(event.description_rtl || false);
         setHostedBy(event.hosted_by || '');
+        setHostVideoUrl(event.host_video_url || null);
         setExternalId(event.external_id || '');
         setRequireApproval(event.require_approval || false);
         setSendQrCode(event.send_qr_code !== false); // Default to true
@@ -687,6 +691,7 @@ export default function EditEvent() {
           description: description || null,
           description_rtl: descriptionRtl,
           hosted_by: hostedBy || null,
+          host_video_url: hostVideoUrl || null,
           external_id: externalId || null,
           start_date: startDate,
           start_time: startTime,
@@ -1003,6 +1008,91 @@ export default function EditEvent() {
                     className="flex-1 text-[14px] text-white/90 placeholder:text-white/30 bg-transparent border-none focus:outline-none focus:ring-0"
                   />
                 </div>
+              </div>
+
+              {/* Host Video Message */}
+              <div className="rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-transparent overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <svg className="w-5 h-5 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
+                  <div className="flex-1">
+                    <span className="text-[14px] text-white/70">Host video message</span>
+                    <p className="text-[12px] text-white/40">A personal message from the host</p>
+                  </div>
+                  {hostVideoUrl ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-green-400">Video added</span>
+                      <button
+                        type="button"
+                        onClick={() => { setHostVideoUrl(null); setHostVideoChanged(true); }}
+                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-colors cursor-pointer ${
+                      isUploadingVideo
+                        ? 'bg-white/5 text-white/40 cursor-not-allowed'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        disabled={isUploadingVideo}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+
+                          // Max 50MB
+                          if (file.size > 50 * 1024 * 1024) {
+                            setSubmitError('Video must be under 50MB');
+                            return;
+                          }
+
+                          setIsUploadingVideo(true);
+                          try {
+                            // Upload to Cloudinary via our API
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('upload_preset', 'host_videos');
+
+                            const res = await fetch(
+                              `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload`,
+                              { method: 'POST', body: formData }
+                            );
+
+                            if (!res.ok) throw new Error('Upload failed');
+
+                            const data = await res.json();
+                            setHostVideoUrl(data.secure_url);
+                            setHostVideoChanged(true);
+                          } catch (err) {
+                            console.error('Video upload failed:', err);
+                            setSubmitError('Failed to upload video');
+                          } finally {
+                            setIsUploadingVideo(false);
+                          }
+                        }}
+                      />
+                      {isUploadingVideo ? 'Uploading...' : 'Upload video'}
+                    </label>
+                  )}
+                </div>
+                {/* Video Preview */}
+                {hostVideoUrl && (
+                  <div className="px-4 pb-4">
+                    <video
+                      src={hostVideoUrl}
+                      controls
+                      className="w-full max-h-48 rounded-lg bg-black"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* External ID - for embed matching */}

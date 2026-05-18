@@ -72,6 +72,7 @@ export default function DashboardPage() {
           name: eventData.name,
           description: eventData.description,
           hostedBy: eventData.hosted_by,
+          hostVideoUrl: eventData.host_video_url || null,
           startDate: eventData.start_date,
           startTime: eventData.start_time,
           endDate: eventData.end_date,
@@ -98,6 +99,9 @@ export default function DashboardPage() {
           isDraft: eventData.is_draft || false,
           language: eventData.language || 'en',
           externalId: eventData.external_id || null,
+          brandLogoUrl: eventData.brand_logo_url || null,
+          brandEmailName: eventData.brand_email_name || null,
+          brandSlug: eventData.brand_slug || null,
         };
         setEvent(publicEvent);
 

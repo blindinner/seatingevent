@@ -2,12 +2,20 @@ import { supabaseAdmin } from './supabase-admin';
 
 // ============================================
 // FINANCIAL TRACKING SYSTEM
-// 10% Platform Fee + 5% Refund Fee Model
+// Tier-based Platform Fee + 5% Refund Fee Model
+// Free tier: 5% | Branded tier: 8%
 // ============================================
 
-export const DEFAULT_PLATFORM_FEE_PERCENT = 10.0;
+// Tier-based fee percentages
+export const FREE_TIER_FEE_PERCENT = 5.0;
+export const BRANDED_TIER_FEE_PERCENT = 8.0;
+
+// Legacy default (used as fallback)
+export const DEFAULT_PLATFORM_FEE_PERCENT = 5.0;
 export const DEFAULT_PLATFORM_FEE_FIXED = 0.0;
 export const DEFAULT_REFUND_FEE_PERCENT = 5.0;
+
+export type OrganizerTier = 'free' | 'branded';
 
 // Transaction types
 export type TransactionType = 'charge' | 'platform_fee' | 'refund' | 'fee_reversal' | 'refund_fee' | 'payout';
@@ -60,30 +68,78 @@ export interface Transaction {
 }
 
 /**
+ * Get the organizer's tier (free or branded)
+ */
+export async function getOrganizerTier(organizerId: string): Promise<OrganizerTier> {
+  try {
+    const { data, error } = await supabaseAdmin.client
+      .from('profiles')
+      .select('tier')
+      .eq('id', organizerId)
+      .single();
+
+    if (error || !data) {
+      return 'free'; // Default to free tier
+    }
+
+    return (data.tier as OrganizerTier) || 'free';
+  } catch {
+    return 'free';
+  }
+}
+
+/**
+ * Get fee percentage based on organizer tier
+ */
+export function getFeePercentForTier(tier: OrganizerTier): number {
+  switch (tier) {
+    case 'branded':
+      return BRANDED_TIER_FEE_PERCENT;
+    case 'free':
+    default:
+      return FREE_TIER_FEE_PERCENT;
+  }
+}
+
+/**
  * Get the applicable fee configuration for an event/organizer
- * Priority: event-specific > organizer-specific > global default
+ * Priority: event-specific > organizer tier > global default
  */
 export async function getFeeConfig(eventId?: string, organizerId?: string): Promise<FeeConfig> {
   try {
+    // First, try to get custom fee config from database
     const { data, error } = await supabaseAdmin.client
       .rpc('get_fee_config', {
         p_event_id: eventId || null,
         p_organizer_id: organizerId || null,
       });
 
-    if (error || !data || data.length === 0) {
-      // Return default if no config found
+    // If custom config exists, use it
+    if (!error && data && data.length > 0) {
       return {
-        platformFeePercent: DEFAULT_PLATFORM_FEE_PERCENT,
+        platformFeePercent: Number(data[0].platform_fee_percent),
+        platformFeeFixed: Number(data[0].platform_fee_fixed),
+        refundFeePercent: Number(data[0].refund_fee_percent),
+      };
+    }
+
+    // Otherwise, use tier-based fee
+    if (organizerId) {
+      const tier = await getOrganizerTier(organizerId);
+      const feePercent = getFeePercentForTier(tier);
+
+      return {
+        platformFeePercent: feePercent,
         platformFeeFixed: DEFAULT_PLATFORM_FEE_FIXED,
         refundFeePercent: DEFAULT_REFUND_FEE_PERCENT,
       };
     }
 
+    // Fallback to defaults
     return {
-      platformFeePercent: Number(data[0].platform_fee_percent),
-      platformFeeFixed: Number(data[0].platform_fee_fixed),
-      refundFeePercent: Number(data[0].refund_fee_percent),
+      platformFeePercent: DEFAULT_PLATFORM_FEE_PERCENT,
+      platformFeeFixed: DEFAULT_PLATFORM_FEE_FIXED,
+      refundFeePercent: DEFAULT_REFUND_FEE_PERCENT,
     };
   } catch {
     // Fallback to defaults on any error
