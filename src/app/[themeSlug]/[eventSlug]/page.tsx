@@ -32,9 +32,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   // Build OG image URL using our API route that compresses images
   // This ensures images are always under Facebook's 8MB limit
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rendeza.com';
+  // Always use www to avoid redirect issues with Facebook's crawler
   const ogImageUrl = event.coverImageUrl
-    ? `${baseUrl}/api/og/${event.id}`
+    ? `https://www.rendeza.com/api/og/${event.id}`
     : null;
 
   const ogImages = ogImageUrl
