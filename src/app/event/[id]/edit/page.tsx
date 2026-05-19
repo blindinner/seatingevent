@@ -16,6 +16,7 @@ import { useMapStore } from '@/stores/mapStore';
 import { formatCurrency, formatCurrencyRange, getCurrencySymbol, DEFAULT_CURRENCY } from '@/lib/currency';
 import { getSupabaseClient } from '@/lib/auth';
 import { uploadCoverImage } from '@/lib/supabase';
+import { compressImage } from '@/lib/imageCompression';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 // Helper to parse date string as local date (avoids timezone issues)
@@ -783,8 +784,11 @@ export default function EditEvent() {
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onload = (e) => {
-                                setCoverImage(e.target?.result as string);
+                              reader.onload = async (e) => {
+                                const dataUrl = e.target?.result as string;
+                                // Compress image for optimal social sharing
+                                const compressedImage = await compressImage(dataUrl);
+                                setCoverImage(compressedImage);
                                 setCoverImageChanged(true);
                               };
                               reader.readAsDataURL(file);
@@ -816,8 +820,11 @@ export default function EditEvent() {
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onload = (e) => {
-                            setCoverImage(e.target?.result as string);
+                          reader.onload = async (e) => {
+                            const dataUrl = e.target?.result as string;
+                            // Compress image for optimal social sharing
+                            const compressedImage = await compressImage(dataUrl);
+                            setCoverImage(compressedImage);
                             setCoverImageChanged(true);
                           };
                           reader.readAsDataURL(file);

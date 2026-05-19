@@ -30,11 +30,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const description = event.description || `Join us for ${event.name} on ${formattedDate}`;
 
-  // Build OG image with optimized URL for social platforms
-  // Use Next.js image optimization to compress large images (Facebook limit ~8MB)
+  // Build OG image URL using our API route that compresses images
+  // This ensures images are always under Facebook's 8MB limit
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rendeza.com';
   const ogImageUrl = event.coverImageUrl
-    ? `${baseUrl}/_next/image?url=${encodeURIComponent(event.coverImageUrl)}&w=1200&q=75`
+    ? `${baseUrl}/api/og/${event.id}`
     : null;
 
   const ogImages = ogImageUrl

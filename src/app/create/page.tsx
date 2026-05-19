@@ -17,6 +17,7 @@ import { useMapStore } from '@/stores/mapStore';
 import { formatCurrency, formatCurrencyRange, getCurrencySymbol, DEFAULT_CURRENCY } from '@/lib/currency';
 import { getUser } from '@/lib/auth';
 import { createMap, createExtendedEvent, uploadCoverImage } from '@/lib/supabase';
+import { compressImage } from '@/lib/imageCompression';
 import { SimpleAuthModal } from '@/components/auth/SimpleAuthModal';
 import { EventPreviewModal } from '@/components/create/EventPreviewModal';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -1496,7 +1497,9 @@ export default function CreateEvent() {
                               const reader = new FileReader();
                               reader.onload = async (e) => {
                                 const dataUrl = e.target?.result as string;
-                                setCoverImage(dataUrl);
+                                // Compress image for optimal social sharing (Facebook/WhatsApp ~8MB limit)
+                                const compressedImage = await compressImage(dataUrl);
+                                setCoverImage(compressedImage);
                                 // Detect aspect ratio
                                 const img = new window.Image();
                                 img.onload = () => {
@@ -1509,9 +1512,9 @@ export default function CreateEvent() {
                                     setCoverImageAspect('portrait');
                                   }
                                 };
-                                img.src = dataUrl;
+                                img.src = compressedImage;
                                 // Extract colors from image
-                                const colors = await extractColorsFromImage(dataUrl);
+                                const colors = await extractColorsFromImage(compressedImage);
                                 if (colors.length > 0) {
                                   setExtractedColors(colors);
                                   setAccentColor(colors[0]); // Auto-select first (most vibrant)
@@ -1555,7 +1558,9 @@ export default function CreateEvent() {
                           const reader = new FileReader();
                           reader.onload = async (e) => {
                             const dataUrl = e.target?.result as string;
-                            setCoverImage(dataUrl);
+                            // Compress image for optimal social sharing (Facebook/WhatsApp ~8MB limit)
+                            const compressedImage = await compressImage(dataUrl);
+                            setCoverImage(compressedImage);
                             // Detect aspect ratio
                             const img = new window.Image();
                             img.onload = () => {
@@ -1568,9 +1573,9 @@ export default function CreateEvent() {
                                 setCoverImageAspect('portrait');
                               }
                             };
-                            img.src = dataUrl;
+                            img.src = compressedImage;
                             // Extract colors from image
-                            const colors = await extractColorsFromImage(dataUrl);
+                            const colors = await extractColorsFromImage(compressedImage);
                             if (colors.length > 0) {
                               setExtractedColors(colors);
                               setAccentColor(colors[0]); // Auto-select first (most vibrant)
