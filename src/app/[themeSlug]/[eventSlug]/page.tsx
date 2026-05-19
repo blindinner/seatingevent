@@ -30,11 +30,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const description = event.description || `Join us for ${event.name} on ${formattedDate}`;
 
-  const ogImages = event.coverImageUrl
+  // Build OG image with optimized URL for social platforms
+  // Use Next.js image optimization to compress large images (Facebook limit ~8MB)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rendeza.com';
+  const ogImageUrl = event.coverImageUrl
+    ? `${baseUrl}/_next/image?url=${encodeURIComponent(event.coverImageUrl)}&w=1200&q=75`
+    : null;
+
+  const ogImages = ogImageUrl
     ? [{
-        url: event.coverImageUrl,
-        width: 800,
-        height: 1000,
+        url: ogImageUrl,
+        width: 1200,
+        height: 1500,
         alt: event.name,
       }]
     : [];
@@ -49,10 +56,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: ogImages,
     },
     twitter: {
-      card: event.coverImageUrl ? 'summary_large_image' : 'summary',
+      card: ogImageUrl ? 'summary_large_image' : 'summary',
       title: event.name,
       description,
-      images: event.coverImageUrl ? [event.coverImageUrl] : [],
+      images: ogImageUrl ? [ogImageUrl] : [],
     },
   };
 }
