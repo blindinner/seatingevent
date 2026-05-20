@@ -26,10 +26,11 @@ export async function sendOwnerNotificationEmail(data: OwnerNotificationData): P
 
   const seatList = data.seats.map(s => `${s.label} (${s.category})`).join(', ');
 
+  // Convert from smallest currency unit (agorot/cents) to main unit
   const formattedAmount = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: data.currency,
-  }).format(data.totalAmount);
+  }).format(data.totalAmount / 100);
 
   const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
   const fromName = process.env.EMAIL_FROM_NAME || 'Rendeza';
@@ -168,10 +169,11 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<{ success:
   const seatList = data.seats.map(s => `${s.label} (${s.category})`).join(', ');
 
   // Format amount for display (amount is already in dollars/main currency unit)
+  // Convert from smallest currency unit (agorot/cents) to main unit
   const formattedAmount = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: data.currency,
-  }).format(data.totalAmount);
+  }).format(data.totalAmount / 100);
 
   // Format date
   const eventDate = new Date(data.eventDate);

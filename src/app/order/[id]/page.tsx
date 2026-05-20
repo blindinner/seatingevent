@@ -57,10 +57,11 @@ export default function OrderConfirmationPage() {
   }, [orderId]);
 
   const formatCurrency = (amount: number, currency: string) => {
+    // Convert from smallest currency unit (agorot/cents) to main unit
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
-    }).format(amount);
+    }).format(amount / 100);
   };
 
   const handleDownloadPdf = async () => {

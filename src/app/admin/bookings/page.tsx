@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, fromSmallestUnit } from '@/lib/currency';
 
 interface AdminBooking {
   id: string;
@@ -154,15 +154,15 @@ export default function AdminBookingsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
           <div className="text-sm text-white/50 mb-1">Total Revenue</div>
-          <div className="text-2xl font-bold text-white">{formatCurrency(totals.totalRevenue, 'USD')}</div>
+          <div className="text-2xl font-bold text-white">{formatCurrency(fromSmallestUnit(totals.totalRevenue, 'ILS'), 'ILS')}</div>
         </div>
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
           <div className="text-sm text-white/50 mb-1">Platform Fees</div>
-          <div className="text-2xl font-bold text-green-400">{formatCurrency(totals.platformFees, 'USD')}</div>
+          <div className="text-2xl font-bold text-green-400">{formatCurrency(fromSmallestUnit(totals.platformFees, 'ILS'), 'ILS')}</div>
         </div>
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
           <div className="text-sm text-white/50 mb-1">Organizer Payouts</div>
-          <div className="text-2xl font-bold text-white/70">{formatCurrency(totals.organizerPayouts, 'USD')}</div>
+          <div className="text-2xl font-bold text-white/70">{formatCurrency(fromSmallestUnit(totals.organizerPayouts, 'ILS'), 'ILS')}</div>
         </div>
       </div>
 
@@ -239,10 +239,10 @@ export default function AdminBookingsPage() {
                     </td>
                     <td className="px-6 py-4 text-white">{booking.seat_count}</td>
                     <td className="px-6 py-4">
-                      <div className="text-white">{formatCurrency(booking.amount_paid, booking.currency)}</div>
+                      <div className="text-white">{formatCurrency(fromSmallestUnit(booking.amount_paid, booking.currency), booking.currency)}</div>
                       {booking.platform_fee_amount > 0 && (
                         <div className="text-xs text-green-400/70">
-                          +{formatCurrency(booking.platform_fee_amount, booking.currency)} fee
+                          +{formatCurrency(fromSmallestUnit(booking.platform_fee_amount, booking.currency), booking.currency)} fee
                         </div>
                       )}
                     </td>

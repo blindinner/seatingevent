@@ -209,10 +209,11 @@ export interface TicketPDFProps {
 }
 
 function formatCurrency(amount: number, currency: string): string {
+  // Convert from smallest currency unit (agorot/cents) to main unit
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
-  }).format(amount);
+  }).format(amount / 100);
 }
 
 export function TicketPDF({
