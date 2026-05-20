@@ -53,11 +53,11 @@ export async function GET(request: NextRequest) {
       event_short_id: eventMap.get(booking.event_id)?.short_id || booking.event_id,
       seat_ids: booking.seat_ids,
       seat_count: booking.seat_count,
-      amount_paid: booking.amount_paid,
+      amount_paid: booking.amount_paid / 100, // Convert from agorot/cents to display unit
       currency: booking.currency,
       payment_status: booking.payment_status,
-      platform_fee_amount: booking.platform_fee_amount,
-      organizer_amount: booking.organizer_amount,
+      platform_fee_amount: (booking.platform_fee_amount || 0) / 100, // Convert from agorot/cents
+      organizer_amount: (booking.organizer_amount || 0) / 100, // Convert from agorot/cents
       created_at: booking.created_at,
     }));
 

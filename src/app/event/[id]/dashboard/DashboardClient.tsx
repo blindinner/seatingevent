@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PublicEvent } from '@/types/event';
 import { Order } from '@/lib/orders';
 import { MapData } from '@/types/map';
-import { formatCurrency, fromSmallestUnit } from '@/lib/currency';
+import { formatCurrency } from '@/lib/currency';
 import { MiniSeatMap } from '@/components/event/MiniSeatMap';
 import { getSupabaseClient } from '@/lib/auth';
 import { PageViewsAnalytics } from '@/components/dashboard/PageViewsAnalytics';
@@ -396,7 +396,7 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
           <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl sm:rounded-2xl p-3 sm:p-5 overflow-hidden">
             <div className="text-xs sm:text-sm text-white/50 mb-1">Revenue</div>
             <div className="text-lg sm:text-2xl font-semibold text-white truncate">
-              {formatCurrency(fromSmallestUnit(stats.totalRevenue, event.currency), event.currency, { showFree: false })}
+              {formatCurrency(stats.totalRevenue, event.currency, { showFree: false })}
             </div>
           </div>
           <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl sm:rounded-2xl p-3 sm:p-5 overflow-hidden">
@@ -521,7 +521,7 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <span className="text-sm font-medium text-white">
-                                {formatCurrency(fromSmallestUnit(order.totalAmount, order.currency), order.currency)}
+                                {formatCurrency(order.totalAmount, order.currency)}
                               </span>
                               <span className="text-xs text-white/40">
                                 {new Date(order.createdAt).toLocaleDateString('en-US', {
@@ -600,7 +600,7 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
                             </td>
                             <td className="px-4 py-3">
                               <div className="text-sm text-white">
-                                {formatCurrency(fromSmallestUnit(order.totalAmount, order.currency), order.currency)}
+                                {formatCurrency(order.totalAmount, order.currency)}
                               </div>
                             </td>
                             <td className="px-4 py-3">
@@ -725,7 +725,7 @@ export function DashboardClient({ event, orders: initialOrders, mapData }: Dashb
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-white/50">Avg. Order Value</span>
                   <span className="text-sm text-white">
-                    {formatCurrency(fromSmallestUnit(stats.averageOrderValue, event.currency), event.currency)}
+                    {formatCurrency(stats.averageOrderValue, event.currency)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

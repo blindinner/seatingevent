@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
       .select('amount_paid')
       .eq('payment_status', 'paid');
 
-    const totalRevenue = revenueData?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0;
+    // Convert from agorot/cents to display unit
+    const totalRevenue = (revenueData?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0) / 100;
 
     // Get recent signups (last 10) - sort by created_at
     const recentUsers = [...allUsers]
@@ -94,7 +95,10 @@ export async function GET(request: NextRequest) {
         created_at: u.created_at,
       })),
       recentEvents: recentEvents || [],
-      recentBookings: recentBookings || [],
+      recentBookings: (recentBookings || []).map(b => ({
+        ...b,
+        amount_paid: (b.amount_paid || 0) / 100, // Convert from agorot/cents
+      })),
     });
   } catch (error) {
     console.error('Admin stats error:', error);

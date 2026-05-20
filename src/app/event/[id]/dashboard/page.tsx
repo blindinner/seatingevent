@@ -121,7 +121,7 @@ export default function DashboardPage() {
             customerPhone: row.customer_phone,
             seatIds: row.seat_ids || [],
             seatCount: row.seat_count,
-            totalAmount: row.amount_paid,
+            totalAmount: row.amount_paid / 100, // Convert from agorot/cents to display unit
             currency: row.currency,
             status: row.payment_status === 'completed' ? 'paid' : row.payment_status,
             paymentOrderId: row.idempotency_key,

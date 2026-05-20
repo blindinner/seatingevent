@@ -72,7 +72,7 @@ export async function GET(
       customerName: order.customerName || '',
       customerEmail: order.customerEmail || '',
       seats: seats,
-      totalAmount: order.totalAmount,
+      totalAmount: order.totalAmount / 100, // Convert from agorot/cents to display unit
       currency: order.currency,
       status: order.status,
       ticketCode: order.ticketCode,
