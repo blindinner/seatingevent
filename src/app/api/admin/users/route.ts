@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             .in('event_id', eventIds)
             .eq('payment_status', 'paid');
 
-          totalRevenue = bookings?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0;
+          totalRevenue = (bookings?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0) / 100; // Convert from agorot/cents
         }
 
         return {
