@@ -100,13 +100,13 @@ export default function AdminBookingsPage() {
     }
   };
 
-  // Calculate totals
+  // Calculate totals (convert from agorot/cents to display unit)
   const totals = useMemo(() => {
     const paidBookings = bookings.filter(b => b.payment_status === 'paid');
     return {
-      totalRevenue: paidBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0),
-      platformFees: paidBookings.reduce((sum, b) => sum + (b.platform_fee_amount || 0), 0),
-      organizerPayouts: paidBookings.reduce((sum, b) => sum + (b.organizer_amount || 0), 0),
+      totalRevenue: paidBookings.reduce((sum, b) => sum + (b.amount_paid || 0), 0) / 100,
+      platformFees: paidBookings.reduce((sum, b) => sum + (b.platform_fee_amount || 0), 0) / 100,
+      organizerPayouts: paidBookings.reduce((sum, b) => sum + (b.organizer_amount || 0), 0) / 100,
     };
   }, [bookings]);
 
@@ -239,10 +239,10 @@ export default function AdminBookingsPage() {
                     </td>
                     <td className="px-6 py-4 text-white">{booking.seat_count}</td>
                     <td className="px-6 py-4">
-                      <div className="text-white">{formatCurrency(booking.amount_paid, booking.currency)}</div>
+                      <div className="text-white">{formatCurrency(booking.amount_paid / 100, booking.currency)}</div>
                       {booking.platform_fee_amount > 0 && (
                         <div className="text-xs text-green-400/70">
-                          +{formatCurrency(booking.platform_fee_amount, booking.currency)} fee
+                          +{formatCurrency(booking.platform_fee_amount / 100, booking.currency)} fee
                         </div>
                       )}
                     </td>

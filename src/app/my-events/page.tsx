@@ -174,7 +174,7 @@ export default function MyEventsPage() {
 
             // Sum up seat_count to get actual ticket count (not just number of bookings)
             const totalTickets = bookings?.reduce((sum, b) => sum + (b.seat_count || 0), 0) || 0;
-            const totalRevenue = bookings?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0;
+            const totalRevenue = (bookings?.reduce((sum, b) => sum + (b.amount_paid || 0), 0) || 0) / 100; // Convert from agorot/cents
 
             return {
               ...event,

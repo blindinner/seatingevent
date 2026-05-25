@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                 <div key={booking.id} className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0">
                   <div>
                     <div className="text-sm text-white truncate max-w-[150px]">{booking.customer_email}</div>
-                    <div className="text-xs text-white/40">{formatCurrency(booking.amount_paid || 0, 'USD')}</div>
+                    <div className="text-xs text-white/40">{formatCurrency((booking.amount_paid || 0) / 100, 'USD')}</div>
                   </div>
                   <div className="text-right">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
